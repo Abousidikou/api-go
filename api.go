@@ -1450,5 +1450,16 @@ func main() {
         return
     })
 
-    http.ListenAndServe(":4445", router)
+    // create a custom server
+    s := &http.Server{
+        Addr:    ":4445",
+        Handler: router, // use `http.DefaultServeMux`
+    }
+
+    cert := "/etc/letsencrypt/live/monitor.uac.bj/fullchain.pem"
+    key := "/etc/letsencrypt/live/monitor.uac.bj/privkey.pem"
+    // run server on port "9000"
+    log.Fatal(s.ListenAndServeTLS(cert, key))
+
+    //http.ListenAndServe(":4445", router)
 }
