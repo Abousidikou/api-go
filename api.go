@@ -1056,7 +1056,7 @@ func main() {
                 if err := res.Scan(&m.BBRInfo_id, &m.DaySlice_id, &m.Year, &m.Month, &m.Day); err != nil {
                     log.Fatal(err)
                 }
-                d := strconv.Itoa(m.Day) + "-" + strconv.Itoa(m.Month) + "-" + strconv.Itoa(m.Year)
+                d := strconv.Itoa(m.Year) + "-" + strconv.Itoa(m.Month) + "-" + strconv.Itoa(m.Day)
                 if i == 0 || q != d {
                     var s1, s2 []int
                     var w [][]int
@@ -1096,7 +1096,7 @@ func main() {
                 if err := res.Scan(&m.BBRInfo_id, &m.DaySlice_id, &m.Year, &m.Month, &m.Day); err != nil {
                     log.Fatal(err)
                 }
-                d := strconv.Itoa(m.Day) + "-" + strconv.Itoa(m.Month) + "-" + strconv.Itoa(m.Year)
+                d := strconv.Itoa(m.Year) + "-" + strconv.Itoa(m.Month) + "-" + strconv.Itoa(m.Day)
                 if i == 0 || q != d {
                     var s1, s2 []int
                     var w [][]int
@@ -1456,8 +1456,8 @@ func main() {
         Handler: router, // use `http.DefaultServeMux`
     }
 
-    cert := "/etc/letsencrypt/live/monitor.uac.bj/fullchain.pem"
-    key := "/etc/letsencrypt/live/monitor.uac.bj/privkey.pem"
+    cert := "fullchain.pem"
+    key := "privkey.pem"
     // run server on port "9000"
     log.Fatal(s.ListenAndServeTLS(cert, key))
 
