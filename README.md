@@ -3,10 +3,25 @@
  
 # Mise en place
   
-  # Installer Golang
+  ## Installer Golang
     https://golang.org/doc/install
   
-  # Clone repository
+  ## Clone repository
   ```bash
-  git clone
+  https://github.com/Abousidikou/api-go.git && cd api-go
+  ```
+  
+  ## Initialize go module
+  ```bash
+  go mod init exampleModule
+  ```
+  
+  ## Download missing package
+  ```bash
+  go mod tidy
+  ```
+  
+  ## Run api
+  ```bash
+  go run api &
   ```
