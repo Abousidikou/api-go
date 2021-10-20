@@ -934,7 +934,7 @@ func main() {
                     ////fmt.Println("Down Provider: ", c)
                     ids = append(ids, c)
                 }
-                proBBR[provider.ISP+"_Down"] = ids
+                proBBR[provider.ASName+"_Down"] = ids
             }
 
             done = false
@@ -960,7 +960,7 @@ func main() {
                     ids = append(ids, c)
                 }
                 //fmt.Println(provider)
-                proBBR[provider.ISP+"_Up"] = ids
+                proBBR[provider.ASName+"_Up"] = ids
             }
 
             done = true
