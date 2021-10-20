@@ -850,7 +850,7 @@ func main() {
 
             done = true
         }
-        //fmt.Println(prov)
+        fmt.Println(prov)
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(prov)
         return
