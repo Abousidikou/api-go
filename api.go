@@ -776,21 +776,21 @@ func main() {
         done := false
         if !done {
             sql_statement := "SELECT Provider_id,Provider_ISP,Provider_AS_Number,Provider_AS_Name from Provider"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request Successful Executed")
+            fmt.Println("Request Successful Executed")
             var m Provider
             i := 0
             for res.Next() {
                 if err := res.Scan(&m.Id, &m.ISP, &m.ASNumber, &m.ASName); err != nil {
                     log.Fatal(err)
                 }
-                ////fmt.Println(m)
+                fmt.Println("m:", m)
                 s := "Prov_" + strconv.Itoa(i)
                 prov[s] = m
                 i++
