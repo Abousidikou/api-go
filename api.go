@@ -797,7 +797,7 @@ func main() {
             }
             done = true
         }
-        ////fmt.Println("Provider:", prov)
+        fmt.Println("Provider:", prov)
         var d int
         var u int
         if done {
@@ -824,7 +824,7 @@ func main() {
             }
             done = false
         }
-
+        fmt.Println("Down prov:", prov)
         if !done {
             for _, provider := range prov {
                 ////fmt.Println("Provider select : ", provider.Id)
@@ -850,6 +850,7 @@ func main() {
 
             done = true
         }
+        fmt.Println("Up and final prov:", prov)
         fmt.Println(prov)
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(prov)
