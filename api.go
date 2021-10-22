@@ -1050,15 +1050,15 @@ func main() {
             }
             ////fmt.Println("Request Successful Executed")
             var m daysliceFromTest
-            //var slice [][]int
-            q := " "
+            var q []string
             i := 0
             for res.Next() {
                 if err := res.Scan(&m.BBRInfo_id, &m.DaySlice_id, &m.Year, &m.Month, &m.Day); err != nil {
                     log.Fatal(err)
                 }
                 d := strconv.Itoa(m.Year) + "-" + strconv.Itoa(m.Month) + "-" + strconv.Itoa(m.Day)
-                if i == 0 || q != d {
+                found := FindString(q, d)
+                if i == 0 || !found {
                     var s1, s2 []int
                     var w [][]int
                     s1 = append(s1, m.DaySlice_id)
@@ -1068,10 +1068,10 @@ func main() {
                     down[d] = w
                     //fmt.Println("downDay1:", down)
                     i++
-                    q = d
+                    q = append(q, d)
                     continue
                 }
-                q = d
+                q = append(q, d)
                 down[d][0] = append(down[d][0], m.DaySlice_id)
                 down[d][1] = append(down[d][1], m.BBRInfo_id)
                 //fmt.Println("downDay2:", down)
@@ -1091,14 +1091,15 @@ func main() {
             }
             ////fmt.Println("Request Successful Executed")
             var m daysliceFromTest
-            q := " "
+            var q []string
             i := 0
             for res.Next() {
                 if err := res.Scan(&m.BBRInfo_id, &m.DaySlice_id, &m.Year, &m.Month, &m.Day); err != nil {
                     log.Fatal(err)
                 }
                 d := strconv.Itoa(m.Year) + "-" + strconv.Itoa(m.Month) + "-" + strconv.Itoa(m.Day)
-                if i == 0 || q != d {
+                found := FindString(q, d)
+                if i == 0 || !found {
                     var s1, s2 []int
                     var w [][]int
                     s1 = append(s1, m.DaySlice_id)
@@ -1108,10 +1109,10 @@ func main() {
                     up[d] = w
                     //fmt.Println("upDay1", up)
                     i++
-                    q = d
+                    q = append(q, d)
                     continue
                 }
-                q = d
+                q = append(q, d)
                 up[d][0] = append(up[d][0], m.DaySlice_id)
                 up[d][1] = append(up[d][1], m.BBRInfo_id)
                 //fmt.Println("upDay2", up)
@@ -1256,31 +1257,32 @@ func main() {
             ////fmt.Println("Request Successful Executed")
             var c paramTCPInfo
             w := make(map[string][]int)
-            q := ""
+            var q []string
             i := 0
             for res.Next() {
                 if err := res.Scan(&c.id, &c.year, &c.month, &c.day); err != nil {
                     log.Fatal(err)
                 }
                 //fmt.Println(c)
-                d := strconv.Itoa(c.day) + "-" + strconv.Itoa(c.month) + "-" + strconv.Itoa(c.year)
-                if i == 0 || q != d {
-                    _, found := w[d]
-                    if found == false {
+                d := strconv.Itoa(c.year) + "-" + strconv.Itoa(c.month) + "-" + strconv.Itoa(c.day)
+                found := FindString(q, d)
+                if i == 0 || !found {
+                    _, f := w[d]
+                    if f == false {
                         var s1 []int
                         s1 = append(s1, c.id)
                         w[d] = s1
-                        q = d
+                        q = append(q, d)
                         i++
                         continue
                     }
                     w[d] = append(w[d], c.id)
-                    q = d
+                    q = append(q, d)
                     i++
                     continue
                 }
                 w[d] = append(w[d], c.id)
-                q = d
+                q = append(q, d)
                 i++
             }
             Test["Download"] = w
@@ -1301,31 +1303,32 @@ func main() {
             var c paramTCPInfo
             w := make(map[string][]int)
             //var slice []int
-            q := ""
+            var q []string
             i := 0
             for res.Next() {
                 if err := res.Scan(&c.id, &c.year, &c.month, &c.day); err != nil {
                     log.Fatal(err)
                 }
                 //fmt.Println(c)
-                d := strconv.Itoa(c.day) + "-" + strconv.Itoa(c.month) + "-" + strconv.Itoa(c.year)
-                if i == 0 || q != d {
-                    _, found := w[d]
-                    if found == false {
+                d := strconv.Itoa(c.year) + "-" + strconv.Itoa(c.month) + "-" + strconv.Itoa(c.day)
+                found := FindString(q, d)
+                if i == 0 || !found {
+                    _, f := w[d]
+                    if f == false {
                         var s1 []int
                         s1 = append(s1, c.id)
                         w[d] = s1
-                        q = d
+                        q = append(q, d)
                         i++
                         continue
                     }
                     w[d] = append(w[d], c.id)
-                    q = d
+                    q = append(q, d)
                     i++
                     continue
                 }
                 w[d] = append(w[d], c.id)
-                q = d
+                q = append(q, d)
                 i++
             }
             Test["Upload"] = w
