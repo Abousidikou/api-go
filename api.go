@@ -1212,7 +1212,7 @@ func main() {
         return
     })
 
-    router.HandleFunc("/tcpinfo/param/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/tcpinfo/{param}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
         var vars = mux.Vars(r)
         param := vars["param"]
         category := vars["type"]
@@ -1448,7 +1448,7 @@ func main() {
             to_send[a] = all
         }
 
-        fmt.Println(to_send)
+        //fmt.Println(to_send)
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         return
