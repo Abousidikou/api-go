@@ -382,7 +382,7 @@ func main() {
         }
         country_ids := getId("Test_Country_id", "Tests", "", "")
         country_ids = unicInt(country_ids)
-        fmt.Println("Country ids:", country_ids)
+        //fmt.Println("Country ids:", country_ids)
 
         ////fmt.Println("Successful Connected")
 
@@ -776,28 +776,28 @@ func main() {
         done := false
         if !done {
             sql_statement := "SELECT Provider_id,Provider_ISP,Provider_AS_Number,Provider_AS_Name from Provider"
-            fmt.Println(sql_statement)
+            //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
             if err != nil {
                 log.Fatal(err)
             }
-            fmt.Println("Request Successful Executed")
+            //fmt.Println("Request Successful Executed")
             var m Provider
             i := 0
             for res.Next() {
                 if err := res.Scan(&m.Id, &m.ISP, &m.ASNumber, &m.ASName); err != nil {
                     log.Fatal(err)
                 }
-                fmt.Println("m:", m)
+                //fmt.Println("m:", m)
                 s := "Prov_" + strconv.Itoa(i)
                 prov[s] = m
                 i++
             }
             done = true
         }
-        fmt.Println("Provider:", prov)
+        //fmt.Println("Provider:", prov)
         var d int
         var u int
         if done {
@@ -824,7 +824,7 @@ func main() {
             }
             done = false
         }
-        fmt.Println("Down prov:", prov)
+        //fmt.Println("Down prov:", prov)
         if !done {
             for _, provider := range prov {
                 ////fmt.Println("Provider select : ", provider.Id)
@@ -850,8 +850,8 @@ func main() {
 
             done = true
         }
-        fmt.Println("Up and final prov:", prov)
-        fmt.Println(prov)
+        //fmt.Println("Up and final prov:", prov)
+        //fmt.Println(prov)
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(prov)
         return
@@ -1334,12 +1334,12 @@ func main() {
             Test["Upload"] = w
             done = false
         }
-        fmt.Println("Test:", Test)
+        //fmt.Println("Test:", Test)
 
         if !done {
             for key, tcpinfo_ids := range Test["Download"] {
                 // tcpinfo_ids is list [4,5,2,6,5]
-                fmt.Println("ids:", tcpinfo_ids)
+                //fmt.Println("ids:", tcpinfo_ids)
                 var avgg []int
                 var minn []int
                 var maxx []int
@@ -1361,7 +1361,7 @@ func main() {
                         if err := res.Scan(&c.avg, &c.min, &c.max, &c.median); err != nil {
                             log.Fatal(err)
                         }
-                        fmt.Println(c)
+                        //fmt.Println(c)
                         avgg = append(avgg, c.avg)
                         minn = append(minn, c.min)
                         maxx = append(maxx, c.max)
@@ -1403,7 +1403,7 @@ func main() {
                         if err := res.Scan(&c.avg, &c.min, &c.max, &c.median); err != nil {
                             log.Fatal(err)
                         }
-                        fmt.Println(c)
+                        //fmt.Println(c)
                         avgg = append(avgg, c.avg)
                         minn = append(minn, c.min)
                         maxx = append(maxx, c.max)
@@ -1419,8 +1419,8 @@ func main() {
             }
             done = false
         }
-        fmt.Println("Test['Download']:", Test["Download"])
-        fmt.Println("Test['Upload']:", Test["Upload"])
+        //fmt.Println("Test['Download']:", Test["Download"])
+        //fmt.Println("Test['Upload']:", Test["Upload"])
 
         to_send := make(map[string]interface{})
         for t := range Test {
