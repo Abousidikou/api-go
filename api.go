@@ -8,6 +8,7 @@ import (
     "net/http"
     "strconv"
     "strings"
+    "time"
 
     _ "github.com/go-sql-driver/mysql"
     "github.com/gorilla/mux"
@@ -53,9 +54,7 @@ type BW struct {
 
 type medianByDay struct {
     DayStat_Type         string `json:"Type"`
-    DayStat_Year         int    `json:"Year"`
-    DayStat_Month        int    `json:"Month"`
-    DayStat_Day          int    `json:"Day"`
+    DayStat_Date         string `json:"Date"`
     DayStat_AvgBW        int    `json:"AvgBW"`
     DayStat_MinBW        int    `json:"MinBW"`
     DayStat_MaxBW        int    `json:"MaxBW"`
@@ -66,11 +65,21 @@ type medianByDay struct {
     DayStat_MedianMinRTT int    `json:"MedianMinRTT"`
 }
 
+type avgMedianByDay struct {
+    DayStat_Type         []byte `json:"Type"`
+    DayStat_Date         []byte `json:"Date"`
+    DayStat_AvgBW        []byte `json:"AvgBW"`
+    DayStat_MinBW        []byte `json:"MinBW"`
+    DayStat_MaxBW        []byte `json:"MaxBW"`
+    DayStat_MedianBW     []byte `json:"MedianBW"`
+    DayStat_AvgMinRTT    []byte `json:"AvgMinRTT"`
+    DayStat_MinMinRTT    []byte `json:"MinMinRTT"`
+    DayStat_MaxMinRTT    []byte `json:"MaxMinRTT"`
+    DayStat_MedianMinRTT []byte `json:"MedianMinRTT"`
+}
 type paramTCPInfo struct {
-    id    int
-    day   int
-    month int
-    year  int
+    Date string
+    id   int
 }
 type tcpinfos struct {
     avg    int
@@ -85,17 +94,179 @@ type daysliceData struct {
 }
 
 type daysliceFromTest struct {
+    Date        string
     BBRInfo_id  int
     DaySlice_id int
-    Year        int
-    Month       int
-    Day         int
 }
 
 type thirdDaySlice struct {
-    DaySlice int `json`
+    DaySlice int `json:"DaySlice"`
     Bw       int `json:"BW"`
 }
+
+//Change
+const monthInYear = 12
+const dayInMonth = 31
+
+func OneYear() time.Duration {
+    t1, _ := time.Parse("2006-01-02", "2021-12-01")
+    t2, _ := time.Parse("2006-01-02", "2022-12-01")
+    return t2.Sub(t1)
+}
+func OneMonth() time.Duration {
+    t1, _ := time.Parse("2006-01-02", "2021-12-01")
+    t2, _ := time.Parse("2006-01-02", "2022-01-01")
+    return t2.Sub(t1)
+}
+func OneDay() time.Duration {
+    t1, _ := time.Parse("2006-01-02", "2021-12-01")
+    t2, _ := time.Parse("2006-01-02", "2021-12-02")
+    return t2.Sub(t1)
+}
+
+func TimeDiff(start, end string) (int, int, int) {
+    startTime, err := time.Parse("2006-01-02", start)
+    endTime, err := time.Parse("2006-01-02", end)
+    if err != nil {
+        log.Fatal("Time not correct:", err)
+    }
+    duration := endTime.Sub(startTime)
+    year := int(duration.Hours() / OneYear().Hours())
+    month := int(duration.Hours() / OneMonth().Hours())
+    day := int(duration.Hours() / OneDay().Hours())
+    return year, month, day
+}
+
+// LastDayOfMonth returns 28-31 - the last day in the month of the time object
+// passed in to the function
+func LastDayOfMonth(ti string) string {
+    t, _ := time.Parse("2006-01-02", ti)
+    firstDay := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC)
+    lastDay := firstDay.AddDate(0, 1, 0).Add(-time.Nanosecond)
+
+    return lastDay.Format("2006-01-02")
+}
+
+func monthInterval(ti string, param int) (string, string) {
+    t, _ := time.Parse("2006-01-02", ti)
+    y, m, _ := t.Date()
+    loc := t.Location()
+    firstDay := time.Date(y, m, 1, 0, 0, 0, 0, loc)
+    lastDay := time.Date(y, m+time.Month(param), 1, 0, 0, 0, -1, loc)
+    return firstDay.Format("2006-01-02"), lastDay.Format("2006-01-02")
+}
+
+func getMonthListe(st, en string, entierType int) ([]string, []string) {
+    startTime, err := time.Parse("2006-01-02", st)
+    endTime, err := time.Parse("2006-01-02", en)
+    if err != nil {
+        log.Fatal("Time not correct:", err)
+    }
+    var datelistedebut []string
+    var datelistefin []string
+    last := ""
+    for true {
+        m := strconv.Itoa(int(startTime.Month()))
+        d := strconv.Itoa(startTime.Day())
+        if int(startTime.Month()) < 10 {
+            m = "0" + m
+        }
+        if startTime.Day() < 10 {
+            d = "0" + d
+        }
+        w := strconv.Itoa(startTime.Year()) + "-" + m + "-" + d
+        if last == "" {
+            datelistedebut = append(datelistedebut, w)
+        } else {
+            if startTime.After(endTime) || startTime.Equal(endTime) {
+                m = strconv.Itoa(int(endTime.Month()))
+                d = strconv.Itoa(endTime.Day())
+                if int(endTime.Month()) < 10 {
+                    m = "0" + m
+                }
+                if endTime.Day() < 10 {
+                    d = "0" + d
+                }
+                w = strconv.Itoa(endTime.Year()) + "-" + m + "-" + d
+                datelistefin = append(datelistefin, w)
+                break
+            } else {
+                datelistefin = append(datelistefin, w)
+                if startTime.After(endTime) || startTime.Equal(endTime) {
+                    break
+                }
+            }
+            datelistedebut = append(datelistedebut, w)
+        }
+        last = w
+        startTime = startTime.AddDate(0, entierType, 0)
+
+    }
+    //fmt.Println(dateliste)
+    return datelistedebut, datelistefin
+}
+
+func rangeDate(dat []string) []string {
+    var dateliste []time.Time
+    for _, val := range dat {
+        q, _ := time.Parse("2006-01-02", val)
+        dateliste = append(dateliste, q)
+    }
+    i := 0
+    for true {
+        for ind := range dateliste {
+            if dateliste[ind].After(dateliste[ind+1]) {
+                tmp := dateliste[ind]
+                dateliste[ind] = dateliste[ind+1]
+                dateliste[ind+1] = tmp
+                i = 1
+            }
+            if ind+1 == len(dateliste)-1 {
+                break
+            }
+        }
+        if i == 0 {
+            break
+        }
+        i = 0
+    }
+
+    var to_return []string
+    for _, val := range dateliste {
+        to_return = append(to_return, val.Format("2006-01-01"))
+    }
+
+    return to_return
+}
+
+func getDateString(st, en string) string {
+    startTime, err := time.Parse("2006-01-02", st)
+    endTime, err := time.Parse("2006-01-02", en)
+    //fmt.Println(st, startTime)
+    //fmt.Println(en, endTime)
+    if err != nil {
+        log.Fatal("Time not correct:", err)
+    }
+    var y1, y2, to_return string
+    firstMonth := startTime.Month().String()[:3]
+    //fmt.Println(firstMonth)
+    secondMonth := endTime.Month().String()[:3]
+    if startTime.Year() == endTime.Year() {
+        y1 = strconv.Itoa(startTime.Year())
+        if firstMonth == secondMonth {
+            to_return = strconv.Itoa(startTime.Day()) + "-" + strconv.Itoa(endTime.Day()) + " " + firstMonth + " " + y1
+        } else {
+            to_return = strconv.Itoa(startTime.Day()) + " " + firstMonth + "-" + strconv.Itoa(endTime.Day()) + " " + secondMonth + " " + y1
+        }
+    } else {
+        y1 = strconv.Itoa(startTime.Year())
+        y2 = strconv.Itoa(endTime.Year())
+        to_return = strconv.Itoa(startTime.Day()) + " " + firstMonth + " " + y1 + "-" + strconv.Itoa(endTime.Day()) + " " + secondMonth + " " + y2
+    }
+    return to_return
+}
+
+//Change End
 
 func getId(id_need, table, colName, val string) []int {
     db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
@@ -321,7 +492,7 @@ func is_a_After_b(a, b string) bool {
     //d := strings.Split(b, "")
     c := []rune(a)
     d := []rune(b)
-    fmt.Println(a, b)
+    //fmt.Println(a, b)
     if c[0] > d[0] {
         return true
     } else if c[0] < d[0] {
@@ -571,9 +742,11 @@ func main() {
         json.NewEncoder(w).Encode(count)
         return
     })
+
+    //Change
     router.HandleFunc("/percentageByService/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
         var down, up []int
-        count := make(map[string][]int)
+        count := make(map[string]interface{})
         var vars = mux.Vars(r)
         category := vars["type"]
         category_Name := vars["type_id"]
@@ -587,14 +760,14 @@ func main() {
         }
         //fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
-        startDay, _ := strconv.Atoi(startDate[1])
-        startMonth, _ := strconv.Atoi(startDate[0])
-        startYear, _ := strconv.Atoi(startDate[2])
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        endDay, _ := strconv.Atoi(endDate[1])
-        endMonth, _ := strconv.Atoi(endDate[0])
-        endYear, _ := strconv.Atoi(endDate[2])
         //fmt.Println(startDate, endDate)
+
+        /*st := strings.Join(startDate, "-")
+          en := strings.Join(endDate, "-")*/
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+
         db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
         defer db.Close()
 
@@ -606,7 +779,7 @@ func main() {
 
         done := false
         if !done {
-            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and Test_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and Test_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
+            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
             //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -626,7 +799,7 @@ func main() {
             done = true
         }
         if done {
-            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and Test_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and Test_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
+            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
             //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -649,236 +822,40 @@ func main() {
 
         ////fmt.Println(down, up)
         count["Download"] = down
+        count["len_Down"] = len(down)
         count["Upload"] = up
+        count["len_Up"] = len(up)
         ////fmt.Println(count)
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(count)
         return
     })
 
+    //Change
     router.HandleFunc("/medianByDay/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
         var vars = mux.Vars(r)
-        category := vars["type"]
-        category_Name := vars["type_id"]
-        category_id := 0
-        if category == "Country" {
-            category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
-        } else if category == "Region" {
-            category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
-        } else if category == "City" {
-            category_id = getId("City_id", "City", "City_Name", category_Name)[0]
-        }
-        fmt.Println(category, category_id)
-        startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
-        startDay, _ := strconv.Atoi(startDate[1])
-        startMonth, _ := strconv.Atoi(startDate[0])
-        startYear, _ := strconv.Atoi(startDate[2])
-        endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        endDay, _ := strconv.Atoi(endDate[1])
-        endMonth, _ := strconv.Atoi(endDate[0])
-        endYear, _ := strconv.Atoi(endDate[2])
-        //fmt.Println(startDate, endDate)
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
-        defer db.Close()
-
-        if err != nil {
-            log.Fatal(err)
-        }
-
-        ////fmt.Println("Successful Connected")
-
-        to_send := make(map[string]medianByDay)
-        done := false
-        if !done {
-            sql_statement := "SELECT DayStat_Type,DayStat_Year,DayStat_Month,DayStat_Day,DayStat_AvgBW,DayStat_MinBW,DayStat_MaxBW,DayStat_MedianBw,DayStat_AvgMinRTT,DayStat_MinMinRTT,DayStat_MaxMinRTT,DayStat_MedianMinRTT from DayStat where DayStat_Type='Download' and  DayStat_Day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and DayStat_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and DayStat_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
-            //fmt.Println(sql_statement)
-            res, err := db.Query(sql_statement)
-            defer res.Close()
-
-            if err != nil {
-                log.Fatal(err)
-            }
-            ////fmt.Println("Request Successful Executed")
-            var m medianByDay
-            i := 0
-            for res.Next() {
-                if err := res.Scan(&m.DayStat_Type, &m.DayStat_Year, &m.DayStat_Month, &m.DayStat_Day, &m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
-                    log.Fatal(err)
-                }
-                ////fmt.Println("Type:", m.DayStat_Type)
-                indice := "D_" + strconv.Itoa(i)
-                to_send[indice] = m
-                i++
-            }
-            done = true
-        }
-
-        if done {
-            sql_statement := "SELECT DayStat_Type,DayStat_Year,DayStat_Month,DayStat_Day,DayStat_AvgBW,DayStat_MinBW,DayStat_MaxBW,DayStat_MedianBw,DayStat_AvgMinRTT,DayStat_MinMinRTT,DayStat_MaxMinRTT,DayStat_MedianMinRTT from DayStat where DayStat_Type='Upload' and DayStat_Day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and DayStat_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and DayStat_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
-            //fmt.Println(sql_statement)
-            res, err := db.Query(sql_statement)
-            defer res.Close()
-
-            if err != nil {
-                log.Fatal(err)
-            }
-            ////fmt.Println("Request Successful Executed")
-            var m medianByDay
-            i := 0
-            for res.Next() {
-                if err := res.Scan(&m.DayStat_Type, &m.DayStat_Year, &m.DayStat_Month, &m.DayStat_Day, &m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
-                    log.Fatal(err)
-                }
-                ////fmt.Println("Type:", m.DayStat_Type)
-                indice := "U_" + strconv.Itoa(i)
-                to_send[indice] = m
-                i++
-            }
-            done = true
-        }
-
-        w.Header().Set("Access-Control-Allow-Origin", "*")
-        json.NewEncoder(w).Encode(to_send)
-        return
-    })
-
-    router.HandleFunc("/providerSample/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
-        var vars = mux.Vars(r)
-        category := vars["type"]
-        category_Name := vars["type_id"]
-        category_id := 0
-        if category == "Country" {
-            category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
-        } else if category == "Region" {
-            category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
-        } else if category == "City" {
-            category_id = getId("City_id", "City", "City_Name", category_Name)[0]
-        }
-        fmt.Println(category, category_id)
-        startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
-        startDay, _ := strconv.Atoi(startDate[1])
-        startMonth, _ := strconv.Atoi(startDate[0])
-        startYear, _ := strconv.Atoi(startDate[2])
-        endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        endDay, _ := strconv.Atoi(endDate[1])
-        endMonth, _ := strconv.Atoi(endDate[0])
-        endYear, _ := strconv.Atoi(endDate[2])
-        //fmt.Println(startDate, endDate)
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
-        defer db.Close()
-
-        if err != nil {
-            log.Fatal(err)
-        }
-
-        ////fmt.Println("Successful Connected")
-        prov := make(map[string]Provider)
-        done := false
-        if !done {
-            sql_statement := "SELECT Provider_id,Provider_ISP,Provider_AS_Number,Provider_AS_Name from Provider"
-            //fmt.Println(sql_statement)
-            res, err := db.Query(sql_statement)
-            defer res.Close()
-
-            if err != nil {
-                log.Fatal(err)
-            }
-            //fmt.Println("Request Successful Executed")
-            var m Provider
-            i := 0
-            for res.Next() {
-                if err := res.Scan(&m.Id, &m.ISP, &m.ASNumber, &m.ASName); err != nil {
-                    log.Fatal(err)
-                }
-                //fmt.Println("m:", m)
-                s := "Prov_" + strconv.Itoa(i)
-                prov[s] = m
-                i++
-            }
-            done = true
-        }
-        //fmt.Println("Provider:", prov)
-        var d int
-        var u int
-        if done {
-            for _, provider := range prov {
-                ////fmt.Println("Provider select : ", provider.Id)
-                sql_statement := "SELECT count(*) from Tests where Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and Test_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and Test_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
-                //fmt.Println(sql_statement)
-                res, err := db.Query(sql_statement)
-                defer res.Close()
-
-                if err != nil {
-                    log.Fatal(err)
-                }
-                ////fmt.Println("Request Successful Executed")
-                for res.Next() {
-                    if err := res.Scan(&d); err != nil {
-                        log.Fatal(err)
-                    }
-                    ////fmt.Println("Down Provider: ", d)
-                }
-                s := "DownSample_" + strconv.Itoa(d)
-                //fmt.Println("Test Provider download:", d)
-                prov[s] = provider
-            }
-            done = false
-        }
-        //fmt.Println("Down prov:", prov)
-        if !done {
-            for _, provider := range prov {
-                ////fmt.Println("Provider select : ", provider.Id)
-                sql_statement := "SELECT count(*) from Tests where Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and Test_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and Test_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
-                //fmt.Println(sql_statement)
-                res, err := db.Query(sql_statement)
-                defer res.Close()
-
-                if err != nil {
-                    log.Fatal(err)
-                }
-                ////fmt.Println("Request Successful Executed")
-                for res.Next() {
-                    if err := res.Scan(&u); err != nil {
-                        log.Fatal(err)
-                    }
-                    //fmt.Println("Up Provider: ", u)
-                }
-                s := "UpSample_" + strconv.Itoa(u)
-                //fmt.Println("Test Provider upload:", u)
-                prov[s] = provider
-            }
-
-            done = true
-        }
-        //fmt.Println("Up and final prov:", prov)
-        //fmt.Println(prov)
-        w.Header().Set("Access-Control-Allow-Origin", "*")
-        json.NewEncoder(w).Encode(prov)
-        return
-    })
-
-    router.HandleFunc("/providerBW/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
-        var vars = mux.Vars(r)
-        category := vars["type"]
-        category_Name := vars["type_id"]
-        category_id := 0
-        if category == "Country" {
-            category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
-        } else if category == "Region" {
-            category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
-        } else if category == "City" {
-            category_id = getId("City_id", "City", "City_Name", category_Name)[0]
-        }
+        /*category := vars["type"]
+          category_Name := vars["type_id"]
+          category_id := 0
+          if category == "Country" {
+              category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
+          } else if category == "Region" {
+              category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
+          } else if category == "City" {
+              category_id = getId("City_id", "City", "City_Name", category_Name)[0]
+          }*/
         //fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
-        startDay, _ := strconv.Atoi(startDate[1])
-        startMonth, _ := strconv.Atoi(startDate[0])
-        startYear, _ := strconv.Atoi(startDate[2])
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        endDay, _ := strconv.Atoi(endDate[1])
-        endMonth, _ := strconv.Atoi(endDate[0])
-        endYear, _ := strconv.Atoi(endDate[2])
         //fmt.Println(startDate, endDate)
+
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+        //fmt.Println(st, en)
+        _, monthDiff, dayDiff := TimeDiff(st, en)
+        //fmt.Println(yearDiff, monthDiff, dayDiff)
+
+        //Base de données
         db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
         defer db.Close()
 
@@ -888,120 +865,231 @@ func main() {
 
         ////fmt.Println("Successful Connected")
 
-        prov := make(map[string]Provider)
+        to_send := make(map[string]interface{})
         done := false
-        if !done {
-            sql_statement := "SELECT Provider_id,Provider_ISP,Provider_AS_Number,Provider_AS_Name from Provider"
-            ////fmt.Println(sql_statement)
-            res, err := db.Query(sql_statement)
-            defer res.Close()
-
-            if err != nil {
-                log.Fatal(err)
-            }
-            ////fmt.Println("Request Successful Executed")
-            var m Provider
-            i := 0
-            for res.Next() {
-                if err := res.Scan(&m.Id, &m.ISP, &m.ASNumber, &m.ASName); err != nil {
-                    log.Fatal(err)
-                }
-                ////fmt.Println(m)
-                s := "Prov_" + strconv.Itoa(i)
-                prov[s] = m
-                i++
-            }
-            done = true
-        }
-
-        proBBR := make(map[string][]int)
-        if done {
-            for _, provider := range prov {
-                sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and Test_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and Test_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
-                ////fmt.Println(sql_statement)
+        if dayDiff <= 31 {
+            if !done {
+                sql_statement := "SELECT DayStat_Date,DayStat_AvgBW,DayStat_MinBW,DayStat_MaxBW,DayStat_MedianBw,DayStat_AvgMinRTT,DayStat_MinMinRTT,DayStat_MaxMinRTT,DayStat_MedianMinRTT from DayStat where DayStat_Type='Download' and  DayStat_Date between '" + st + "' and '" + en + "'"
+                //fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
-                var ids []int
+
                 if err != nil {
                     log.Fatal(err)
                 }
-                ////fmt.Println("Request Successful Executed")
-                var c int
+                //fmt.Println("Request Successful Executed")
+                var m medianByDay
+                var Date []string
+                var D_AvgBW []int
+                var D_MinBW []int
+                var D_MaxBW []int
+                var D_MedianBW []int
+                var D_AvgMinRTT []int
+                var D_MinMinRTT []int
+                var D_MaxMinRTT []int
+                var D_MedianMinRTT []int
                 for res.Next() {
-                    if err := res.Scan(&c); err != nil {
+                    if err := res.Scan(&m.DayStat_Date, &m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
                         log.Fatal(err)
                     }
-                    ////fmt.Println("Down Provider: ", c)
-                    ids = append(ids, c)
+                    //fmt.Println(m.DayStat_Date)
+                    Date = append(Date, m.DayStat_Date)
+                    D_AvgBW = append(D_AvgBW, m.DayStat_AvgBW)
+                    D_MinBW = append(D_MinBW, m.DayStat_MinBW)
+                    D_MaxBW = append(D_MaxBW, m.DayStat_MaxBW)
+                    D_MedianBW = append(D_MedianBW, m.DayStat_MedianBW)
+                    D_AvgMinRTT = append(D_AvgMinRTT, m.DayStat_AvgMinRTT)
+                    D_MinMinRTT = append(D_MinMinRTT, m.DayStat_MinMinRTT)
+                    D_MaxMinRTT = append(D_MaxMinRTT, m.DayStat_MaxMinRTT)
+                    D_MedianMinRTT = append(D_MedianMinRTT, m.DayStat_MedianMinRTT)
                 }
-                proBBR[provider.ASName+"_Down"] = ids
+                to_send["D_Date"] = Date
+                to_send["D_AvgBW"] = D_AvgBW
+                to_send["D_MinBW"] = D_MinBW
+                to_send["D_MaxBW"] = D_MaxBW
+                to_send["D_MedianBW"] = D_MedianBW
+                to_send["D_AvgMinRTT"] = D_AvgMinRTT
+                to_send["D_MinMinRTT"] = D_MinMinRTT
+                to_send["D_MaxMinRTT"] = D_MaxMinRTT
+                to_send["D_MedianMinRTT"] = D_MedianMinRTT
+                done = true
             }
+            if done {
+                sql_statement := "SELECT DayStat_Date,DayStat_AvgBW,DayStat_MinBW,DayStat_MaxBW,DayStat_MedianBw,DayStat_AvgMinRTT,DayStat_MinMinRTT,DayStat_MaxMinRTT,DayStat_MedianMinRTT from DayStat where DayStat_Type='Upload' and  DayStat_Date between '" + st + "' and '" + en + "'"
+                //fmt.Println(sql_statement)
+                res, err := db.Query(sql_statement)
+                defer res.Close()
+
+                if err != nil {
+                    log.Fatal(err)
+                }
+                //fmt.Println("Request Successful Executed")
+                var m medianByDay
+                var Date []string
+                var U_AvgBW []int
+                var U_MinBW []int
+                var U_MaxBW []int
+                var U_MedianBW []int
+                var U_AvgMinRTT []int
+                var U_MinMinRTT []int
+                var U_MaxMinRTT []int
+                var U_MedianMinRTT []int
+                for res.Next() {
+                    if err := res.Scan(&m.DayStat_Date, &m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
+                        log.Fatal(err)
+                    }
+                    Date = append(Date, m.DayStat_Date)
+                    U_AvgBW = append(U_AvgBW, m.DayStat_AvgBW)
+                    U_MinBW = append(U_MinBW, m.DayStat_MinBW)
+                    U_MaxBW = append(U_MaxBW, m.DayStat_MaxBW)
+                    U_MedianBW = append(U_MedianBW, m.DayStat_MedianBW)
+                    U_AvgMinRTT = append(U_AvgMinRTT, m.DayStat_AvgMinRTT)
+                    U_MinMinRTT = append(U_MinMinRTT, m.DayStat_MinMinRTT)
+                    U_MaxMinRTT = append(U_MaxMinRTT, m.DayStat_MaxMinRTT)
+                    U_MedianMinRTT = append(U_MedianMinRTT, m.DayStat_MedianMinRTT)
+                }
+                to_send["U_Date"] = Date
+                to_send["U_AvgBW"] = U_AvgBW
+                to_send["U_MinBW"] = U_MinBW
+                to_send["U_MaxBW"] = U_MaxBW
+                to_send["U_MedianBW"] = U_MedianBW
+                to_send["U_AvgMinRTT"] = U_AvgMinRTT
+                to_send["U_MinMinRTT"] = U_MinMinRTT
+                to_send["U_MaxMinRTT"] = U_MaxMinRTT
+                to_send["U_MedianMinRTT"] = U_MedianMinRTT
+                done = false
+            }
+            to_send["type"] = 0
+        } else {
+            // faire la liste des date
+            var datelisteDeb, datelisteFin []string
+            if dayDiff > 31 && monthDiff != 0 && monthDiff <= 24 {
+                datelisteDeb, datelisteFin = getMonthListe(st, en, 1)
+            } else if monthDiff > 24 && monthDiff <= 48 {
+                datelisteDeb, datelisteFin = getMonthListe(st, en, 3)
+            } else if monthDiff > 24 && monthDiff <= 60 {
+                datelisteDeb, datelisteFin = getMonthListe(st, en, 6)
+            } else if monthDiff > 60 {
+                datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
+            }
+            // Ordonner si dateliste ne l'est pas
+            //fmt.Println(datelisteDeb, datelisteFin)
+            var date []string
+            var D_AvgBW []float64
+            var D_MinBW []float64
+            var D_MaxBW []float64
+            var D_MedianBW []float64
+            var D_AvgMinRTT []float64
+            var D_MinMinRTT []float64
+            var D_MaxMinRTT []float64
+            var D_MedianMinRTT []float64
+            var U_AvgBW []float64
+            var U_MinBW []float64
+            var U_MaxBW []float64
+            var U_MedianBW []float64
+            var U_AvgMinRTT []float64
+            var U_MinMinRTT []float64
+            var U_MaxMinRTT []float64
+            var U_MedianMinRTT []float64
 
             done = false
-        }
-        //fmt.Println("ProBBR Down:", proBBR)
-        if !done {
-            for _, provider := range prov {
-                sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and Test_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and Test_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
-                ////fmt.Println(sql_statement)
-                res, err := db.Query(sql_statement)
-                defer res.Close()
-                var ids []int
-                if err != nil {
-                    log.Fatal(err)
-                }
-                ////fmt.Println("Request Successful Executed")
-                var c int
-                for res.Next() {
-                    if err := res.Scan(&c); err != nil {
-                        log.Fatal(err)
-                    }
-                    ////fmt.Println("Down Provider: ", c)
-                    ids = append(ids, c)
-                }
-                //fmt.Println(provider)
-                proBBR[provider.ASName+"_Up"] = ids
-            }
-
-            done = true
-        }
-
-        //fmt.Println("ProBBR All:", proBBR)
-        provBW := make(map[string]ProviderBW)
-        if done {
-            for pro, idl := range proBBR {
-                var bwl []BW
-                for _, id := range idl {
-                    sql_statement := "SELECT AvgBW,AvgMinRTT from BBRInfo where BBRInfo_id='" + strconv.Itoa(id) + "' "
-                    ////fmt.Println(sql_statement)
+            for ind := range datelisteDeb {
+                //fmt.Println(datelisteDeb[ind], datelisteFin[ind])
+                date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
+                if !done {
+                    sql_statement := "SELECT AVG(DayStat_AvgBW),AVG(DayStat_MinBW),AVG(DayStat_MaxBW),AVG(DayStat_MedianBw),AVG(DayStat_AvgMinRTT),AVG(DayStat_MinMinRTT),AVG(DayStat_MaxMinRTT),AVG(DayStat_MedianMinRTT) from DayStat where DayStat_Type='Download' and DayStat_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
+                    //fmt.Println(sql_statement)
                     res, err := db.Query(sql_statement)
                     defer res.Close()
+
                     if err != nil {
                         log.Fatal(err)
                     }
-                    ////fmt.Println("Request Successful Executed")
-                    var bw BW
+                    //fmt.Println("Request Successful Executed")
+                    var m avgMedianByDay
                     for res.Next() {
-                        if err := res.Scan(&bw.BW, &bw.MinRTT); err != nil {
-                            //fmt.Println("Scanning Error")
+                        if err := res.Scan(&m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
                             log.Fatal(err)
                         }
-                        bwl = append(bwl, bw)
-                    }
-                }
-                //fmt.Println("Pro: ", pro)
-                //fmt.Println("bwl: ", bwl)
-                getted := BWProcess(bwl)
-                //fmt.Println("Getted:", getted)
-                provBW[pro] = getted
-                //fmt.Println("ProvBW:", provBW)
-            }
 
+                        s, _ := strconv.ParseFloat(string(m.DayStat_AvgBW), 10)
+                        D_AvgBW = append(D_AvgBW, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MinBW), 10)
+                        D_MinBW = append(D_MinBW, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MaxBW), 10)
+                        D_MaxBW = append(D_MaxBW, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MedianBW), 10)
+                        D_MedianBW = append(D_MedianBW, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_AvgMinRTT), 10)
+                        D_AvgMinRTT = append(D_AvgMinRTT, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MinMinRTT), 10)
+                        D_MinMinRTT = append(D_MinMinRTT, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MaxMinRTT), 10)
+                        D_MaxMinRTT = append(D_MaxMinRTT, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MedianMinRTT), 10)
+                        D_MedianMinRTT = append(D_MedianMinRTT, s)
+                    }
+                    done = true
+                }
+                if done {
+                    sql_statement := "SELECT AVG(DayStat_AvgBW),AVG(DayStat_MinBW),AVG(DayStat_MaxBW),AVG(DayStat_MedianBw),AVG(DayStat_AvgMinRTT),AVG(DayStat_MinMinRTT),AVG(DayStat_MaxMinRTT),AVG(DayStat_MedianMinRTT) from DayStat where DayStat_Type='Upload' and DayStat_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
+                    //fmt.Println(sql_statement)
+                    res, err := db.Query(sql_statement)
+                    defer res.Close()
+
+                    if err != nil {
+                        log.Fatal(err)
+                    }
+                    //fmt.Println(" 991 Request Successful Executed")
+                    var m avgMedianByDay
+                    for res.Next() {
+                        if err := res.Scan(&m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
+                            log.Fatal(err)
+                        }
+                        //fmt.Println(string(m.DayStat_AvgBW))
+                        s, _ := strconv.ParseFloat(string(m.DayStat_AvgBW), 10)
+                        U_AvgBW = append(U_AvgBW, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MinBW), 10)
+                        U_MinBW = append(U_MinBW, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MaxBW), 10)
+                        U_MaxBW = append(U_MaxBW, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MedianBW), 10)
+                        U_MedianBW = append(U_MedianBW, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_AvgMinRTT), 10)
+                        U_AvgMinRTT = append(U_AvgMinRTT, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MinMinRTT), 10)
+                        U_MinMinRTT = append(U_MinMinRTT, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MaxMinRTT), 10)
+                        U_MaxMinRTT = append(U_MaxMinRTT, s)
+                        s, _ = strconv.ParseFloat(string(m.DayStat_MedianMinRTT), 10)
+                        U_MedianMinRTT = append(U_MedianMinRTT)
+                    }
+                    done = false
+                }
+            }
+            to_send["type"] = 1
+            to_send["D_Date"] = date
+            to_send["D_AvgBW"] = D_AvgBW
+            to_send["D_MinBW"] = D_MinBW
+            to_send["D_MaxBW"] = D_MaxBW
+            to_send["D_MedianBW"] = D_MedianBW
+            to_send["D_AvgMinRTT"] = D_AvgMinRTT
+            to_send["D_MinMinRTT"] = D_MinMinRTT
+            to_send["D_MaxMinRTT"] = D_MaxMinRTT
+            to_send["D_MedianMinRTT"] = D_MedianMinRTT
+            to_send["U_AvgBW"] = U_AvgBW
+            to_send["U_MinBW"] = U_MinBW
+            to_send["U_MaxBW"] = U_MaxBW
+            to_send["U_MedianBW"] = U_MedianBW
+            to_send["U_AvgMinRTT"] = U_AvgMinRTT
+            to_send["U_MinMinRTT"] = U_MinMinRTT
+            to_send["U_MaxMinRTT"] = U_MaxMinRTT
+            to_send["U_MedianMinRTT"] = U_MedianMinRTT
         }
 
+        //fmt.Println("to_send:", to_send)
         w.Header().Set("Access-Control-Allow-Origin", "*")
-        //json.NewEncoder(w).Encode(prov)
-        json.NewEncoder(w).Encode(provBW)
+        json.NewEncoder(w).Encode(to_send)
         return
     })
 
@@ -1020,14 +1108,31 @@ func main() {
         }
         //fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
-        startDay, _ := strconv.Atoi(startDate[1])
-        startMonth, _ := strconv.Atoi(startDate[0])
-        startYear, _ := strconv.Atoi(startDate[2])
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        endDay, _ := strconv.Atoi(endDate[1])
-        endMonth, _ := strconv.Atoi(endDate[0])
-        endYear, _ := strconv.Atoi(endDate[2])
         //fmt.Println(startDate, endDate)
+
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+        //fmt.Println(st, en)
+        _, _, dayDiff := TimeDiff(st, en)
+        //fmt.Println(yearDiff, monthDiff, dayDiff)
+        if dayDiff > 40 {
+            a, _ := strconv.Atoi(startDate[2])
+            c, _ := strconv.Atoi(startDate[1])
+            b, _ := strconv.Atoi(startDate[0])
+            tmp := time.Date(a, time.Month(b), c, 0, 0, 0, 0, time.UTC)
+            tmp = tmp.AddDate(0, 1, 0)
+            mo := strconv.Itoa(int(tmp.Month()))
+            da := strconv.Itoa(tmp.Day())
+            if tmp.Day() < 10 {
+                da = "0" + strconv.Itoa(tmp.Day())
+            }
+            if int(tmp.Month()) < 10 {
+                mo = "0" + strconv.Itoa(int(tmp.Month()))
+            }
+            //fmt.Println(strconv.Itoa(tmp.Year()))
+            en = strconv.Itoa(tmp.Year()) + "-" + mo + "-" + da
+        }
         db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
         defer db.Close()
 
@@ -1040,7 +1145,7 @@ func main() {
         up := make(map[string][][]int)
         done := false
         if !done {
-            sql_statement := "SELECT Test_BBRInfo_id,Test_DaySlice_id,Test_Year,Test_Month,Test_day from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and Test_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and Test_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
+            sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
             //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -1053,10 +1158,10 @@ func main() {
             var q []string
             i := 0
             for res.Next() {
-                if err := res.Scan(&m.BBRInfo_id, &m.DaySlice_id, &m.Year, &m.Month, &m.Day); err != nil {
+                if err := res.Scan(&m.Date, &m.BBRInfo_id, &m.DaySlice_id); err != nil {
                     log.Fatal(err)
                 }
-                d := strconv.Itoa(m.Year) + "-" + strconv.Itoa(m.Month) + "-" + strconv.Itoa(m.Day)
+                d := m.Date
                 found := FindString(q, d)
                 if i == 0 || !found {
                     var s1, s2 []int
@@ -1081,7 +1186,7 @@ func main() {
         }
         //fmt.Println("downDay3:", down)
         if done {
-            sql_statement := "SELECT Test_BBRInfo_id,Test_DaySlice_id,Test_Year,Test_Month,Test_day from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and Test_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and Test_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
+            sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
             //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -1094,10 +1199,10 @@ func main() {
             var q []string
             i := 0
             for res.Next() {
-                if err := res.Scan(&m.BBRInfo_id, &m.DaySlice_id, &m.Year, &m.Month, &m.Day); err != nil {
+                if err := res.Scan(&m.Date, &m.BBRInfo_id, &m.DaySlice_id); err != nil {
                     log.Fatal(err)
                 }
-                d := strconv.Itoa(m.Year) + "-" + strconv.Itoa(m.Month) + "-" + strconv.Itoa(m.Day)
+                d := m.Date
                 found := FindString(q, d)
                 if i == 0 || !found {
                     var s1, s2 []int
@@ -1227,14 +1332,12 @@ func main() {
         }
         //fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
-        startDay, _ := strconv.Atoi(startDate[1])
-        startMonth, _ := strconv.Atoi(startDate[0])
-        startYear, _ := strconv.Atoi(startDate[2])
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        endDay, _ := strconv.Atoi(endDate[1])
-        endMonth, _ := strconv.Atoi(endDate[0])
-        endYear, _ := strconv.Atoi(endDate[2])
         //fmt.Println(startDate, endDate)
+
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+        //fmt.Println(st, en)
         db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
         defer db.Close()
 
@@ -1246,7 +1349,7 @@ func main() {
         done := false
         Test := make(map[string]map[string][]int)
         if !done {
-            sql_statement := "SELECT Test_TCPInfo_id,Test_Year,Test_Month,Test_Day from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and Test_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and Test_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
+            sql_statement := "SELECT Test_Date,Test_TCPInfo_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
             //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -1254,17 +1357,17 @@ func main() {
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request Successful Executed")
+            //fmt.Println("Request Successful Executed")
             var c paramTCPInfo
             w := make(map[string][]int)
             var q []string
             i := 0
             for res.Next() {
-                if err := res.Scan(&c.id, &c.year, &c.month, &c.day); err != nil {
+                if err := res.Scan(&c.Date, &c.id); err != nil {
                     log.Fatal(err)
                 }
-                //fmt.Println(c)
-                d := strconv.Itoa(c.year) + "-" + strconv.Itoa(c.month) + "-" + strconv.Itoa(c.day)
+                //fmt.Println("c:", c)
+                d := c.Date
                 found := FindString(q, d)
                 if i == 0 || !found {
                     _, f := w[d]
@@ -1284,6 +1387,7 @@ func main() {
                 w[d] = append(w[d], c.id)
                 q = append(q, d)
                 i++
+                //fmt.Println("w:", w)
             }
             Test["Download"] = w
 
@@ -1291,7 +1395,7 @@ func main() {
         }
         //fmt.Println("Download:", Test)
         if done {
-            sql_statement := "SELECT Test_TCPInfo_id,Test_Year,Test_Month,Test_Day from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_day between " + strconv.Itoa(startDay) + " and " + strconv.Itoa(endDay) + " and Test_Month between " + strconv.Itoa(startMonth) + " and " + strconv.Itoa(endMonth) + " and Test_Year between " + strconv.Itoa(startYear) + " and " + strconv.Itoa(endYear)
+            sql_statement := "SELECT Test_Date,Test_TCPInfo_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
             //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -1306,11 +1410,11 @@ func main() {
             var q []string
             i := 0
             for res.Next() {
-                if err := res.Scan(&c.id, &c.year, &c.month, &c.day); err != nil {
+                if err := res.Scan(&c.Date, &c.id); err != nil {
                     log.Fatal(err)
                 }
                 //fmt.Println(c)
-                d := strconv.Itoa(c.year) + "-" + strconv.Itoa(c.month) + "-" + strconv.Itoa(c.day)
+                d := c.Date
                 found := FindString(q, d)
                 if i == 0 || !found {
                     _, f := w[d]
@@ -1454,6 +1558,331 @@ func main() {
         return
     })
 
+    router.HandleFunc("/providerSample/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        var vars = mux.Vars(r)
+        category := vars["type"]
+        category_Name := vars["type_id"]
+        category_id := 0
+        if category == "Country" {
+            category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
+        } else if category == "Region" {
+            category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
+        } else if category == "City" {
+            category_id = getId("City_id", "City", "City_Name", category_Name)[0]
+        }
+        //fmt.Println(category, category_id)
+        //fmt.Println(category, category_id)
+        startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
+        endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
+        //fmt.Println(startDate, endDate)
+
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+        //fmt.Println(st, en)
+        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        defer db.Close()
+
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        ////fmt.Println("Successful Connected")
+        prov := make(map[string]Provider)
+        done := false
+        if !done {
+            sql_statement := "SELECT Provider_id,Provider_ISP,Provider_AS_Number,Provider_AS_Name from Provider"
+            //fmt.Println(sql_statement)
+            res, err := db.Query(sql_statement)
+            defer res.Close()
+
+            if err != nil {
+                log.Fatal(err)
+            }
+            //fmt.Println("Request Successful Executed")
+            var m Provider
+            i := 0
+            for res.Next() {
+                if err := res.Scan(&m.Id, &m.ISP, &m.ASNumber, &m.ASName); err != nil {
+                    log.Fatal(err)
+                }
+                //fmt.Println("m:", m)
+                s := "Prov_" + strconv.Itoa(i)
+                prov[s] = m
+                i++
+            }
+            done = true
+        }
+        //fmt.Println("Provider:", prov)
+        var d int
+        var u int
+        if done {
+            for _, provider := range prov {
+                ////fmt.Println("Provider select : ", provider.Id)
+                sql_statement := "SELECT count(*) from Tests where Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + st + "' and '" + en + "'"
+                //fmt.Println(sql_statement)
+                res, err := db.Query(sql_statement)
+                defer res.Close()
+
+                if err != nil {
+                    log.Fatal(err)
+                }
+                ////fmt.Println("Request Successful Executed")
+                for res.Next() {
+                    if err := res.Scan(&d); err != nil {
+                        log.Fatal(err)
+                    }
+                    ////fmt.Println("Down Provider: ", d)
+                }
+                s := "DownSample_" + strconv.Itoa(d)
+                //fmt.Println("Test Provider download:", d)
+                prov[s] = provider
+            }
+            done = false
+        }
+        //fmt.Println("Down prov:", prov)
+        if !done {
+            for _, provider := range prov {
+                ////fmt.Println("Provider select : ", provider.Id)
+                sql_statement := "SELECT count(*) from Tests where Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + st + "' and '" + en + "'"
+                //fmt.Println(sql_statement)
+                res, err := db.Query(sql_statement)
+                defer res.Close()
+
+                if err != nil {
+                    log.Fatal(err)
+                }
+                ////fmt.Println("Request Successful Executed")
+                for res.Next() {
+                    if err := res.Scan(&u); err != nil {
+                        log.Fatal(err)
+                    }
+                    //fmt.Println("Up Provider: ", u)
+                }
+                s := "UpSample_" + strconv.Itoa(u)
+                //fmt.Println("Test Provider upload:", u)
+                prov[s] = provider
+            }
+
+            done = true
+        }
+        //fmt.Println("Up and final prov:", prov)
+        //fmt.Println(prov)
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        json.NewEncoder(w).Encode(prov)
+        return
+    })
+
+    router.HandleFunc("/providerBW/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        var vars = mux.Vars(r)
+        category := vars["type"]
+        category_Name := vars["type_id"]
+        category_id := 0
+        if category == "Country" {
+            category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
+        } else if category == "Region" {
+            category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
+        } else if category == "City" {
+            category_id = getId("City_id", "City", "City_Name", category_Name)[0]
+        }
+        //fmt.Println(category, category_id)
+        startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
+        endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
+        //fmt.Println(startDate, endDate)
+
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+        //fmt.Println(st, en)
+        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        defer db.Close()
+
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        ////fmt.Println("Successful Connected")
+
+        prov := make(map[string]Provider)
+        done := false
+        if !done {
+            sql_statement := "SELECT Provider_id,Provider_ISP,Provider_AS_Number,Provider_AS_Name from Provider"
+            ////fmt.Println(sql_statement)
+            res, err := db.Query(sql_statement)
+            defer res.Close()
+
+            if err != nil {
+                log.Fatal(err)
+            }
+            ////fmt.Println("Request Successful Executed")
+            var m Provider
+            i := 0
+            for res.Next() {
+                if err := res.Scan(&m.Id, &m.ISP, &m.ASNumber, &m.ASName); err != nil {
+                    log.Fatal(err)
+                }
+                ////fmt.Println(m)
+                s := "Prov_" + strconv.Itoa(i)
+                prov[s] = m
+                i++
+            }
+            done = true
+        }
+
+        proBBR := make(map[string][]int)
+        if done {
+            for _, provider := range prov {
+                sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "'"
+                ////fmt.Println(sql_statement)
+                res, err := db.Query(sql_statement)
+                defer res.Close()
+                var ids []int
+                if err != nil {
+                    log.Fatal(err)
+                }
+                ////fmt.Println("Request Successful Executed")
+                var c int
+                for res.Next() {
+                    if err := res.Scan(&c); err != nil {
+                        log.Fatal(err)
+                    }
+                    ////fmt.Println("Down Provider: ", c)
+                    ids = append(ids, c)
+                }
+                proBBR[provider.ASName+"_Down"] = ids
+            }
+
+            done = false
+        }
+        //fmt.Println("ProBBR Down:", proBBR)
+        if !done {
+            for _, provider := range prov {
+                sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "'"
+                ////fmt.Println(sql_statement)
+                res, err := db.Query(sql_statement)
+                defer res.Close()
+                var ids []int
+                if err != nil {
+                    log.Fatal(err)
+                }
+                ////fmt.Println("Request Successful Executed")
+                var c int
+                for res.Next() {
+                    if err := res.Scan(&c); err != nil {
+                        log.Fatal(err)
+                    }
+                    ////fmt.Println("Down Provider: ", c)
+                    ids = append(ids, c)
+                }
+                //fmt.Println(provider)
+                proBBR[provider.ASName+"_Up"] = ids
+            }
+
+            done = true
+        }
+
+        //fmt.Println("ProBBR All:", proBBR)
+        provBW := make(map[string]ProviderBW)
+        if done {
+            for pro, idl := range proBBR {
+                var bwl []BW
+                for _, id := range idl {
+                    sql_statement := "SELECT AvgBW,AvgMinRTT from BBRInfo where BBRInfo_id='" + strconv.Itoa(id) + "' "
+                    ////fmt.Println(sql_statement)
+                    res, err := db.Query(sql_statement)
+                    defer res.Close()
+                    if err != nil {
+                        log.Fatal(err)
+                    }
+                    ////fmt.Println("Request Successful Executed")
+                    var bw BW
+                    for res.Next() {
+                        if err := res.Scan(&bw.BW, &bw.MinRTT); err != nil {
+                            //fmt.Println("Scanning Error")
+                            log.Fatal(err)
+                        }
+                        bwl = append(bwl, bw)
+                    }
+                }
+                //fmt.Println("Pro: ", pro)
+                //fmt.Println("bwl: ", bwl)
+                getted := BWProcess(bwl)
+                //fmt.Println("Getted:", getted)
+                provBW[pro] = getted
+                //fmt.Println("ProvBW:", provBW)
+            }
+
+        }
+
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        //json.NewEncoder(w).Encode(prov)
+        json.NewEncoder(w).Encode(provBW)
+        return
+    })
+
+    router.HandleFunc("/Sample/{typeofparam}/{param}", func(w http.ResponseWriter, r *http.Request) {
+        vars := mux.Vars(r)
+        typeOfParam := vars["typeofparam"]
+        param := vars["param"]
+        sql_statement := ""
+        count := make(map[string]int)
+        if typeOfParam == "country" {
+            country_id := getId("Country_id", "Country", "Country_Name", param)
+            sql_statement = "SELECT count(*) FROM Tests where Test_Country_id=" + strconv.Itoa(country_id[0])
+        } else if typeOfParam == "city" {
+            city_id := getId("City_id", "City", "City_Name", param)
+            sql_statement = "SELECT count(*) FROM Tests where Test_City_id=" + strconv.Itoa(city_id[0])
+        } else if typeOfParam == "region" {
+            region_id := getId("Region_id", "Region", "Region_Name", param)
+            sql_statement = "SELECT count(*) FROM Tests where Test_Region_id=" + strconv.Itoa(region_id[0])
+        } else if typeOfParam == "downCountry" {
+            country_id := getId("Country_id", "Country", "Country_Name", param)
+            sql_statement = "SELECT count(*) FROM Tests where Test_Country_id=" + strconv.Itoa(country_id[0]) + " and Test_Type='Download'"
+        } else if typeOfParam == "upCountry" {
+            country_id := getId("Country_id", "Country", "Country_Name", param)
+            sql_statement = "SELECT count(*) FROM Tests where Test_Country_id=" + strconv.Itoa(country_id[0]) + " and Test_Type='Upload'"
+        } else if typeOfParam == "downRegion" {
+            region_id := getId("Region_id", "Region", "Region_Name", param)
+            sql_statement = "SELECT count(*) FROM Tests where Test_Region_id=" + strconv.Itoa(region_id[0]) + " and Test_Type='Download'"
+        } else if typeOfParam == "upRegion" {
+            region_id := getId("Region_id", "Region", "Region_Name", param)
+            sql_statement = "SELECT count(*) FROM Tests where Test_Region_id=" + strconv.Itoa(region_id[0]) + " and Test_Type='Upload'"
+        } else if typeOfParam == "downCity" {
+            city_id := getId("City_id", "City", "City_Name", param)
+            sql_statement = "SELECT count(*) FROM Tests where Test_City_id=" + strconv.Itoa(city_id[0]) + " and Test_Type='Download'"
+        } else if typeOfParam == "upCity" {
+            city_id := getId("City_id", "City", "City_Name", param)
+            sql_statement = "SELECT count(*) FROM Tests where Test_City_id=" + strconv.Itoa(city_id[0]) + " and Test_Type='Upload'"
+        }
+        //fmt.Println(sql_statement)
+        //Connect to database
+        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        defer db.Close()
+
+        if err != nil {
+            log.Fatal(err)
+        }
+        ////fmt.Println("Successful Connected")
+
+        res, err := db.Query(sql_statement)
+        defer res.Close()
+
+        var c int
+
+        for res.Next() {
+            if err := res.Scan(&c); err != nil {
+                log.Fatal(err)
+            }
+            count["Sample"] = c
+        }
+
+        ////fmt.Println(count)
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        json.NewEncoder(w).Encode(count)
+        return
+    })
+
+    // Lauching server
+    //log.Fatal(http.ListenAndServe(":4445", router))
+
     // create a custom server
     s := &http.Server{
         Addr:    ":4445",
@@ -1464,6 +1893,4 @@ func main() {
     key := "privkey.pem"
     // run server on port "9000"
     log.Fatal(s.ListenAndServeTLS(cert, key))
-
-    //http.ListenAndServe(":4445", router)
 }
