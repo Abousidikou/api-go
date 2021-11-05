@@ -266,6 +266,32 @@ func getDateString(st, en string) string {
     return to_return
 }
 
+func getFirstDate() string {
+    db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+    defer db.Close()
+    if err != nil {
+        log.Fatal(err)
+    }
+    ////fmt.Println("Successful Connected")
+    var sql_statement string
+    sql_statement = "SELECT Test_Date from Tests limit 1"
+    //fmt.Println(sql_statement)
+    res, err := db.Query(sql_statement)
+    defer res.Close()
+    if err != nil {
+        log.Fatal(err)
+    }
+    ////fmt.Println("Request executed well")
+    var row string
+    for res.Next() {
+        err := res.Scan(&row)
+        if err != nil {
+            log.Fatal(err)
+        }
+    }
+    return row
+}
+
 //Change End
 
 func getId(id_need, table, colName, val string) []int {
@@ -678,6 +704,7 @@ func main() {
 
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(cities)
+
         return
     })
 
@@ -1116,14 +1143,36 @@ func main() {
         //fmt.Println(st, en)
         _, _, dayDiff := TimeDiff(st, en)
         //fmt.Println(yearDiff, monthDiff, dayDiff)
-        if dayDiff > 31 {
+        if dayDiff > 35 {
             a, _ := strconv.Atoi(startDate[2])
             c, _ := strconv.Atoi(startDate[1])
             b, _ := strconv.Atoi(startDate[0])
-            tmp := time.Date(a, time.Month(b), c, 0, 0, 0, 0, time.UTC)
-            tmp = tmp.AddDate(0, 1, 0)
+            tmp1 := time.Date(a, time.Month(b), c, 0, 0, 0, 0, time.UTC)
+            d := getFirstDate()
+            fmt.Println("d:", d)
+            a, _ = strconv.Atoi(strings.Split(d, "-")[0])
+            c, _ = strconv.Atoi(strings.Split(d, "-")[2])
+            b, _ = strconv.Atoi(strings.Split(d, "-")[1])
+            tmp2 := time.Date(a, time.Month(b), c, 0, 0, 0, 0, time.UTC)
+            //fmt.Println(tmp1, tmp2)
+            var tmp time.Time
+            if tmp2.After(tmp1) {
+                tmp = tmp2
+            } else {
+                tmp = tmp1
+            }
             mo := strconv.Itoa(int(tmp.Month()))
             da := strconv.Itoa(tmp.Day())
+            if tmp.Day() < 10 {
+                da = "0" + strconv.Itoa(tmp.Day())
+            }
+            if int(tmp.Month()) < 10 {
+                mo = "0" + strconv.Itoa(int(tmp.Month()))
+            }
+            st = strconv.Itoa(tmp.Year()) + "-" + mo + "-" + da
+            tmp = tmp.AddDate(0, 1, 0)
+            mo = strconv.Itoa(int(tmp.Month()))
+            da = strconv.Itoa(tmp.Day())
             if tmp.Day() < 10 {
                 da = "0" + strconv.Itoa(tmp.Day())
             }
@@ -1133,6 +1182,7 @@ func main() {
             //fmt.Println(strconv.Itoa(tmp.Year()))
             en = strconv.Itoa(tmp.Year()) + "-" + mo + "-" + da
         }
+
         //fmt.Println(st, en)
         db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
         defer db.Close()
