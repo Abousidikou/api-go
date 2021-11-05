@@ -1744,7 +1744,7 @@ func main() {
                     if err := res.Scan(&c); err != nil {
                         log.Fatal(err)
                     }
-                    ////fmt.Println("Down Provider: ", c)
+                    fmt.Println("Down Provider: ", c)
                     ids = append(ids, c)
                 }
                 proBBR[provider.ASName+"_Down"] = ids
@@ -1769,7 +1769,7 @@ func main() {
                     if err := res.Scan(&c); err != nil {
                         log.Fatal(err)
                     }
-                    ////fmt.Println("Down Provider: ", c)
+                    fmt.Println("Up Provider: ", c)
                     ids = append(ids, c)
                 }
                 //fmt.Println(provider)
@@ -1779,7 +1779,7 @@ func main() {
             done = true
         }
 
-        //fmt.Println("ProBBR All:", proBBR)
+        fmt.Println("ProBBR All:", proBBR)
         provBW := make(map[string]ProviderBW)
         if done {
             for pro, idl := range proBBR {
