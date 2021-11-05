@@ -1133,7 +1133,7 @@ func main() {
             //fmt.Println(strconv.Itoa(tmp.Year()))
             en = strconv.Itoa(tmp.Year()) + "-" + mo + "-" + da
         }
-        fmt.Println(st, en)
+        //fmt.Println(st, en)
         db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
         defer db.Close()
 
@@ -1141,13 +1141,13 @@ func main() {
             log.Fatal(err)
         }
 
-        fmt.Println("Successful Connected")
+        //fmt.Println("Successful Connected")
         down := make(map[string][][]int)
         up := make(map[string][][]int)
         done := false
         if !done {
             sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
-            fmt.Println(sql_statement)
+            //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -1180,7 +1180,7 @@ func main() {
                 q = append(q, d)
                 down[d][0] = append(down[d][0], m.DaySlice_id)
                 down[d][1] = append(down[d][1], m.BBRInfo_id)
-                fmt.Println("downDay2:", down)
+                //fmt.Println("downDay2:", down)
                 i++
             }
             done = true
@@ -1221,7 +1221,7 @@ func main() {
                 q = append(q, d)
                 up[d][0] = append(up[d][0], m.DaySlice_id)
                 up[d][1] = append(up[d][1], m.BBRInfo_id)
-                fmt.Println("upDay2", up)
+                //fmt.Println("upDay2", up)
                 i++
             }
             done = false
@@ -1289,21 +1289,21 @@ func main() {
             }
             done = true
         }
-        fmt.Println(down, up)
+        //fmt.Println(down, up)
         down_to_send := make(map[string][]thirdDaySlice)
         for d, l := range down {
             var key []thirdDaySlice
             key = constructDaySlice(l)
             down_to_send[d] = key
         }
-        fmt.Println("down_to_send:", down_to_send)
+        //fmt.Println("down_to_send:", down_to_send)
         up_to_send := make(map[string][]thirdDaySlice)
         for d, l := range down {
             var key []thirdDaySlice
             key = constructDaySlice(l)
             up_to_send[d] = key
         }
-        fmt.Println("up_to_send:", up_to_send)
+        //fmt.Println("up_to_send:", up_to_send)
         /*jsonrep, err := json.Marshal(to_send)
           if err != nil {
               log.Fatal(err)
