@@ -1744,10 +1744,12 @@ func main() {
                     if err := res.Scan(&c); err != nil {
                         log.Fatal(err)
                     }
-                    fmt.Println("Down Provider: ", c)
+                    //fmt.Println("Down Provider: ", c)
                     ids = append(ids, c)
                 }
-                proBBR[provider.ASName+"_Down"] = ids
+                if len(ids) != 0 {
+                    proBBR[provider.ASName+"_Down"] = ids
+                }
             }
 
             done = false
@@ -1769,17 +1771,20 @@ func main() {
                     if err := res.Scan(&c); err != nil {
                         log.Fatal(err)
                     }
-                    fmt.Println("Up Provider: ", c)
+                    //fmt.Println("Up Provider: ", c)
                     ids = append(ids, c)
                 }
                 //fmt.Println(provider)
-                proBBR[provider.ASName+"_Up"] = ids
+                if len(ids) == 0 {
+                    proBBR[provider.ASName+"_Up"] = ids
+                }
+
             }
 
             done = true
         }
 
-        fmt.Println("ProBBR All:", proBBR)
+        //fmt.Println("ProBBR All:", proBBR)
         provBW := make(map[string]ProviderBW)
         if done {
             for pro, idl := range proBBR {
@@ -1884,6 +1889,7 @@ func main() {
     //log.Fatal(http.ListenAndServe(":4445", router))
 
     // create a custom server
+    fmt.Println("Server Starting at :4445")
     s := &http.Server{
         Addr:    ":4445",
         Handler: router, // use `http.DefaultServeMux`
