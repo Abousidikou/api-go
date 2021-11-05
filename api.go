@@ -867,7 +867,7 @@ func main() {
 
         to_send := make(map[string]interface{})
         done := false
-        if dayDiff <= 31 {
+        if dayDiff <= 35 {
             if !done {
                 sql_statement := "SELECT DayStat_Date,DayStat_AvgBW,DayStat_MinBW,DayStat_MaxBW,DayStat_MedianBw,DayStat_AvgMinRTT,DayStat_MinMinRTT,DayStat_MaxMinRTT,DayStat_MedianMinRTT from DayStat where DayStat_Type='Download' and  DayStat_Date between '" + st + "' and '" + en + "'"
                 //fmt.Println(sql_statement)
@@ -963,7 +963,7 @@ func main() {
         } else {
             // faire la liste des date
             var datelisteDeb, datelisteFin []string
-            if dayDiff > 31 && monthDiff != 0 && monthDiff <= 24 {
+            if dayDiff > 35 && monthDiff != 0 && monthDiff <= 24 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 1)
             } else if monthDiff > 24 && monthDiff <= 48 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 3)
@@ -1116,7 +1116,7 @@ func main() {
         //fmt.Println(st, en)
         _, _, dayDiff := TimeDiff(st, en)
         //fmt.Println(yearDiff, monthDiff, dayDiff)
-        if dayDiff > 40 {
+        if dayDiff > 31 {
             a, _ := strconv.Atoi(startDate[2])
             c, _ := strconv.Atoi(startDate[1])
             b, _ := strconv.Atoi(startDate[0])
@@ -1807,7 +1807,7 @@ func main() {
                         bwl = append(bwl, bw)
                     }
                 }
-                //fmt.Println("Pro: ", pro)
+                fmt.Println("Pro: ", pro)
                 //fmt.Println("bwl: ", bwl)
                 getted := BWProcess(bwl)
                 //fmt.Println("Getted:", getted)
