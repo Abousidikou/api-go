@@ -701,7 +701,6 @@ func main() {
                 i++
             }
         }
-
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(cities)
 
@@ -1025,7 +1024,7 @@ func main() {
                 date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
                 if !done {
                     sql_statement := "SELECT AVG(DayStat_AvgBW),AVG(DayStat_MinBW),AVG(DayStat_MaxBW),AVG(DayStat_MedianBw),AVG(DayStat_AvgMinRTT),AVG(DayStat_MinMinRTT),AVG(DayStat_MaxMinRTT),AVG(DayStat_MedianMinRTT) from DayStat where DayStat_Type='Download' and DayStat_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
-                    fmt.Println(sql_statement)
+                    //fmt.Println(sql_statement)
                     res, err := db.Query(sql_statement)
                     defer res.Close()
 
@@ -1149,7 +1148,7 @@ func main() {
             b, _ := strconv.Atoi(startDate[0])
             tmp1 := time.Date(a, time.Month(b), c, 0, 0, 0, 0, time.UTC)
             d := getFirstDate()
-            fmt.Println("d:", d)
+            //fmt.Println("d:", d)
             a, _ = strconv.Atoi(strings.Split(d, "-")[0])
             c, _ = strconv.Atoi(strings.Split(d, "-")[2])
             b, _ = strconv.Atoi(strings.Split(d, "-")[1])
@@ -1238,7 +1237,7 @@ func main() {
         //fmt.Println("downDay3:", down)
         if done {
             sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
-            fmt.Println(sql_statement)
+            //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -1858,7 +1857,7 @@ func main() {
                         bwl = append(bwl, bw)
                     }
                 }
-                fmt.Println("Pro: ", pro)
+                //fmt.Println("Pro: ", pro)
                 //fmt.Println("bwl: ", bwl)
                 getted := BWProcess(bwl)
                 //fmt.Println("Getted:", getted)
