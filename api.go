@@ -189,17 +189,40 @@ func getMonthListe(st, en string, entierType int) ([]string, []string) {
                 }
                 w = strconv.Itoa(endTime.Year()) + "-" + m + "-" + d
                 datelistefin = append(datelistefin, w)
-                break
+                if entierType != 0 {
+                    break
+                }
             } else {
                 datelistefin = append(datelistefin, w)
                 if startTime.After(endTime) || startTime.Equal(endTime) {
                     break
                 }
             }
+            if entierType != 0 {
+                startTime = startTime.AddDate(0, 0, 1)
+                m = strconv.Itoa(int(startTime.Month()))
+                d = strconv.Itoa(startTime.Day())
+                if int(startTime.Month()) < 10 {
+                    m = "0" + m
+                }
+                if startTime.Day() < 10 {
+                    d = "0" + d
+                }
+                w = strconv.Itoa(startTime.Year()) + "-" + m + "-" + d
+            }
             datelistedebut = append(datelistedebut, w)
+            if entierType == 0 {
+                if startTime.After(endTime) || startTime.Equal(endTime) {
+                    break
+                }
+            }
         }
         last = w
-        startTime = startTime.AddDate(0, entierType, 0)
+        if entierType == 0 {
+            startTime = startTime.AddDate(0, 0, 1)
+        } else {
+            startTime = startTime.AddDate(0, entierType, 0)
+        }
 
     }
     //fmt.Println(dateliste)
@@ -292,7 +315,73 @@ func getFirstDate() string {
     return row
 }
 
-//Change End
+func is_a_After_bDate(a, b string) bool {
+    a_Year, _ := strconv.Atoi(strings.Split(a, "-")[0])
+    a_Month, _ := strconv.Atoi(strings.Split(a, "-")[1])
+    a_Day, _ := strconv.Atoi(strings.Split(a, "-")[2])
+    b_Year, _ := strconv.Atoi(strings.Split(b, "-")[0])
+    b_Month, _ := strconv.Atoi(strings.Split(b, "-")[1])
+    b_Day, _ := strconv.Atoi(strings.Split(b, "-")[2])
+
+    first := time.Date(a_Year, time.Month(a_Month), a_Day, 0, 0, 0, 0, time.UTC)
+    second := time.Date(b_Year, time.Month(b_Month), b_Day, 0, 0, 0, 0, time.UTC)
+
+    return first.After(second)
+}
+func is_a_equal_bDate(a, b string) bool {
+    a_Year, _ := strconv.Atoi(strings.Split(a, "-")[0])
+    a_Month, _ := strconv.Atoi(strings.Split(a, "-")[1])
+    a_Day, _ := strconv.Atoi(strings.Split(a, "-")[2])
+    b_Year, _ := strconv.Atoi(strings.Split(b, "-")[0])
+    b_Month, _ := strconv.Atoi(strings.Split(b, "-")[1])
+    b_Day, _ := strconv.Atoi(strings.Split(b, "-")[2])
+
+    first := time.Date(a_Year, time.Month(a_Month), a_Day, 0, 0, 0, 0, time.UTC)
+    second := time.Date(b_Year, time.Month(b_Month), b_Day, 0, 0, 0, 0, time.UTC)
+
+    return first == second
+}
+func daySliceToMonth(dateDeb, dateFin string, down, up map[string][]thirdDaySlice) ([]thirdDaySlice, []thirdDaySlice) {
+    //dayliste, _ := getMonthListe(dateDeb, dateFin, 0)
+    var n thirdDaySlice
+    var down_send, up_to_send []thirdDaySlice
+    for i := 1; i < 5; i++ {
+        var avgDown, avgUp []int
+        // Download
+        for date, slice := range down {
+            fmt.Println(ind, val)
+            if is_a_After_bDate(date, dateDeb) && is_a_After_bDate(dateFin, date) {
+                for ind, val := range slice {
+                    if slice["DaySlice"] == 1 {
+                        avgDown = append(avgDown, slice["BW"])
+                    }
+                }
+            }
+        }
+        //avg ready
+        n.DaySlice = i
+        n.Bw = getAvg(avgDown)
+        down_send = append(down_send, n)
+        // Upload
+        for date, slice := range up {
+            fmt.Println(ind, val)
+            if is_a_After_bDate(date, dateDeb) && is_a_After_bDate(dateFin, date) {
+                for ind, val := range slice {
+                    if slice["DaySlice"] == 1 {
+                        avgUp = append(avgUp, slice["BW"])
+                    }
+                }
+            }
+        }
+        //avg ready
+        n.DaySlice = i
+        n.Bw = getAvg(avgUp)
+        up_to_send = append(avgUp, n)
+    }
+    return down_send, up_to_send
+}
+
+////////////////////////////////////////////////////////////////////////////////////Change End
 
 func getId(id_need, table, colName, val string) []int {
     db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
@@ -474,7 +563,7 @@ func constructDaySlice(l [][]int) []thirdDaySlice {
                 slice = append(slice, l[1][index])
             }
         }
-        fmt.Println("slice:", slice)
+        //fmt.Println("slice:", slice)
         checked = append(checked, id)
         trat[id] = slice
     }
@@ -482,7 +571,9 @@ func constructDaySlice(l [][]int) []thirdDaySlice {
     //fmt.Println("trat:", trat)
     for ind, val := range trat {
         var t thirdDaySlice
+        fmt.Println("Val:", val)
         entier := getAvg(val)
+        fmt.Println("Avg Val:", entier)
         t.DaySlice = ind
         t.Bw = entier
         to_return = append(to_return, t)
@@ -896,7 +987,7 @@ func main() {
         if dayDiff <= 35 {
             if !done {
                 sql_statement := "SELECT DayStat_Date,DayStat_AvgBW,DayStat_MinBW,DayStat_MaxBW,DayStat_MedianBw,DayStat_AvgMinRTT,DayStat_MinMinRTT,DayStat_MaxMinRTT,DayStat_MedianMinRTT from DayStat where DayStat_Type='Download' and  DayStat_Date between '" + st + "' and '" + en + "'"
-                fmt.Println(sql_statement)
+                //fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
@@ -918,7 +1009,7 @@ func main() {
                     if err := res.Scan(&m.DayStat_Date, &m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
                         log.Fatal(err)
                     }
-                    fmt.Println(m.DayStat_Date)
+                    //fmt.Println(m.DayStat_Date)
                     Date = append(Date, m.DayStat_Date)
                     D_AvgBW = append(D_AvgBW, m.DayStat_AvgBW)
                     D_MinBW = append(D_MinBW, m.DayStat_MinBW)
@@ -940,10 +1031,10 @@ func main() {
                 to_send["D_MedianMinRTT"] = D_MedianMinRTT
                 done = true
             }
-            fmt.Println("to_send down:", to_send)
+            //fmt.Println("to_send down:", to_send)
             if done {
                 sql_statement := "SELECT DayStat_Date,DayStat_AvgBW,DayStat_MinBW,DayStat_MaxBW,DayStat_MedianBw,DayStat_AvgMinRTT,DayStat_MinMinRTT,DayStat_MaxMinRTT,DayStat_MedianMinRTT from DayStat where DayStat_Type='Upload' and  DayStat_Date between '" + st + "' and '" + en + "'"
-                fmt.Println(sql_statement)
+                //fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
@@ -1114,7 +1205,7 @@ func main() {
             to_send["U_MedianMinRTT"] = U_MedianMinRTT
         }
 
-        fmt.Println("to_send:", to_send)
+        //fmt.Println("to_send:", to_send)
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         return
@@ -1143,7 +1234,7 @@ func main() {
         //fmt.Println(st, en)
         _, _, dayDiff := TimeDiff(st, en)
         //fmt.Println(yearDiff, monthDiff, dayDiff)
-        if dayDiff > 35 {
+        /*if dayDiff > 35 {
             a, _ := strconv.Atoi(startDate[2])
             c, _ := strconv.Atoi(startDate[1])
             b, _ := strconv.Atoi(startDate[0])
@@ -1181,9 +1272,9 @@ func main() {
             }
             //fmt.Println(strconv.Itoa(tmp.Year()))
             en = strconv.Itoa(tmp.Year()) + "-" + mo + "-" + da
-        }
+        }*/
 
-        //fmt.Println(st, en)
+        fmt.Println(st, en)
         db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
         defer db.Close()
 
@@ -1197,7 +1288,7 @@ func main() {
         done := false
         if !done {
             sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
-            fmt.Println(sql_statement)
+            //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -1235,10 +1326,10 @@ func main() {
             }
             done = true
         }
-        fmt.Println("downDay3:", down)
+        //fmt.Println("downDay3:", down)
         if done {
             sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
-            fmt.Println(sql_statement)
+            //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -1277,7 +1368,7 @@ func main() {
             done = false
         }
 
-        fmt.Println("upDay3", up)
+        //fmt.Println("upDay3", up)
         var days []string
         if !done {
             for i, y := range down {
@@ -1309,7 +1400,7 @@ func main() {
             }
             done = true
         }
-        fmt.Println("Down with Avg:", down)
+        //fmt.Println("Down with Avg:", down)
         if done {
             for i, y := range up {
                 days = append(days, i)
@@ -1340,29 +1431,50 @@ func main() {
             }
             done = true
         }
-        fmt.Println("Up with Avg", up)
+        //fmt.Println("Up with Avg", up)
         down_to_send := make(map[string][]thirdDaySlice)
         for d, l := range down {
             var key []thirdDaySlice
             key = constructDaySlice(l)
             down_to_send[d] = key
         }
-        fmt.Println("down_to_send:", down_to_send)
+        //fmt.Println("down_to_send:", down_to_send)
         up_to_send := make(map[string][]thirdDaySlice)
         for d, l := range down {
             var key []thirdDaySlice
             key = constructDaySlice(l)
             up_to_send[d] = key
         }
-        fmt.Println("up_to_send:", up_to_send)
-        /*jsonrep, err := json.Marshal(to_send)
-          if err != nil {
-              log.Fatal(err)
-          }
-          fmt.Println(string(jsonrep))*/
+        //fmt.Println("up_to_send:", up_to_send)
         to_send := make(map[string]map[string][]thirdDaySlice)
         to_send["Download"] = down_to_send
         to_send["Upload"] = up_to_send
+
+        // According to month
+        if dayDiff > 30 {
+            // faire la liste des date
+            var datelisteDeb, datelisteFin []string
+            if monthDiff <= 24 {
+                datelisteDeb, datelisteFin = getMonthListe(st, en, 1)
+            } else if monthDiff > 24 && monthDiff <= 48 {
+                datelisteDeb, datelisteFin = getMonthListe(st, en, 3)
+            } else if monthDiff > 24 && monthDiff <= 60 {
+                datelisteDeb, datelisteFin = getMonthListe(st, en, 6)
+            } else if monthDiff > 60 {
+                datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
+            }
+            fmt.Println(datelisteDeb, datelisteFin)
+            tp1 := make(map[string][]thirdDaySlice)
+            tp2 := make(map[string][]thirdDaySlice)
+            for ind := range datelisteDeb {
+                date = getDateString(datelisteDeb[ind], datelisteFin[ind])
+                d_tmp, u_tmp := daySliceToMonth(datelisteDeb[ind], datelisteFin[ind], down_to_send, up_to_send)
+                tp1[date] = d_tmp
+                tp2[date] = u_tmp
+            }
+            to_send["Download"] = tp1
+            to_send["Upload"] = tp2
+        }
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         //w.Write(jsonrep)
