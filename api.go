@@ -363,7 +363,6 @@ func daySliceToMonth(dateDeb, dateFin string, down, up map[string][]thirdDaySlic
         down_send = append(down_send, n)
         // Upload
         for date, slice := range up {
-            fmt.Println(ind, val)
             if is_a_After_bDate(date, dateDeb) && is_a_After_bDate(dateFin, date) {
                 for _, val := range slice {
                     if val.DaySlice == 1 {
@@ -375,7 +374,7 @@ func daySliceToMonth(dateDeb, dateFin string, down, up map[string][]thirdDaySlic
         //avg ready
         n.DaySlice = i
         n.Bw = getAvg(avgUp)
-        up_to_send = append(avgUp, n)
+        up_to_send = append(up_to_send, n)
     }
     return down_send, up_to_send
 }
@@ -1231,7 +1230,7 @@ func main() {
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         //fmt.Println(st, en)
-        _, _, dayDiff := TimeDiff(st, en)
+        _, monthDiff, dayDiff := TimeDiff(st, en)
         //fmt.Println(yearDiff, monthDiff, dayDiff)
         /*if dayDiff > 35 {
             a, _ := strconv.Atoi(startDate[2])
@@ -1466,7 +1465,7 @@ func main() {
             tp1 := make(map[string][]thirdDaySlice)
             tp2 := make(map[string][]thirdDaySlice)
             for ind := range datelisteDeb {
-                date = getDateString(datelisteDeb[ind], datelisteFin[ind])
+                date := getDateString(datelisteDeb[ind], datelisteFin[ind])
                 d_tmp, u_tmp := daySliceToMonth(datelisteDeb[ind], datelisteFin[ind], down_to_send, up_to_send)
                 tp1[date] = d_tmp
                 tp2[date] = u_tmp
