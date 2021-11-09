@@ -474,7 +474,7 @@ func constructDaySlice(l [][]int) []thirdDaySlice {
                 slice = append(slice, l[1][index])
             }
         }
-        //fmt.Println("slice:", slice)
+        fmt.Println("slice:", slice)
         checked = append(checked, id)
         trat[id] = slice
     }
@@ -1113,7 +1113,7 @@ func main() {
             to_send["U_MedianMinRTT"] = U_MedianMinRTT
         }
 
-        //fmt.Println("to_send:", to_send)
+        fmt.Println("to_send:", to_send)
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         return
@@ -1196,7 +1196,7 @@ func main() {
         done := false
         if !done {
             sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -1234,10 +1234,10 @@ func main() {
             }
             done = true
         }
-        //fmt.Println("downDay3:", down)
+        fmt.Println("downDay3:", down)
         if done {
             sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -1276,7 +1276,7 @@ func main() {
             done = false
         }
 
-        //fmt.Println("upDay3", up)
+        fmt.Println("upDay3", up)
         var days []string
         if !done {
             for i, y := range down {
@@ -1308,6 +1308,7 @@ func main() {
             }
             done = true
         }
+        fmt.Println("Down with Avg:", down)
         if done {
             for i, y := range up {
                 days = append(days, i)
@@ -1338,21 +1339,21 @@ func main() {
             }
             done = true
         }
-        //fmt.Println(down, up)
+        fmt.Println("Up with Avg", up)
         down_to_send := make(map[string][]thirdDaySlice)
         for d, l := range down {
             var key []thirdDaySlice
             key = constructDaySlice(l)
             down_to_send[d] = key
         }
-        //fmt.Println("down_to_send:", down_to_send)
+        fmt.Println("down_to_send:", down_to_send)
         up_to_send := make(map[string][]thirdDaySlice)
         for d, l := range down {
             var key []thirdDaySlice
             key = constructDaySlice(l)
             up_to_send[d] = key
         }
-        //fmt.Println("up_to_send:", up_to_send)
+        fmt.Println("up_to_send:", up_to_send)
         /*jsonrep, err := json.Marshal(to_send)
           if err != nil {
               log.Fatal(err)
