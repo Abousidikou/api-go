@@ -349,11 +349,10 @@ func daySliceToMonth(dateDeb, dateFin string, down, up map[string][]thirdDaySlic
         var avgDown, avgUp []int
         // Download
         for date, slice := range down {
-            fmt.Println(ind, val)
             if is_a_After_bDate(date, dateDeb) && is_a_After_bDate(dateFin, date) {
-                for ind, val := range slice {
-                    if slice["DaySlice"] == 1 {
-                        avgDown = append(avgDown, slice["BW"])
+                for _, val := range slice {
+                    if val["DaySlice"] == 1 {
+                        avgDown = append(avgDown, val["BW"])
                     }
                 }
             }
@@ -366,9 +365,9 @@ func daySliceToMonth(dateDeb, dateFin string, down, up map[string][]thirdDaySlic
         for date, slice := range up {
             fmt.Println(ind, val)
             if is_a_After_bDate(date, dateDeb) && is_a_After_bDate(dateFin, date) {
-                for ind, val := range slice {
-                    if slice["DaySlice"] == 1 {
-                        avgUp = append(avgUp, slice["BW"])
+                for _, val := range slice {
+                    if val["DaySlice"] == 1 {
+                        avgUp = append(avgUp, val["BW"])
                     }
                 }
             }
