@@ -896,7 +896,7 @@ func main() {
         if dayDiff <= 35 {
             if !done {
                 sql_statement := "SELECT DayStat_Date,DayStat_AvgBW,DayStat_MinBW,DayStat_MaxBW,DayStat_MedianBw,DayStat_AvgMinRTT,DayStat_MinMinRTT,DayStat_MaxMinRTT,DayStat_MedianMinRTT from DayStat where DayStat_Type='Download' and  DayStat_Date between '" + st + "' and '" + en + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
@@ -943,7 +943,7 @@ func main() {
             fmt.Println("to_send down:", to_send)
             if done {
                 sql_statement := "SELECT DayStat_Date,DayStat_AvgBW,DayStat_MinBW,DayStat_MaxBW,DayStat_MedianBw,DayStat_AvgMinRTT,DayStat_MinMinRTT,DayStat_MaxMinRTT,DayStat_MedianMinRTT from DayStat where DayStat_Type='Upload' and  DayStat_Date between '" + st + "' and '" + en + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
