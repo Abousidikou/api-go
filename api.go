@@ -14,6 +14,10 @@ import (
     "github.com/gorilla/mux"
 )
 
+const monthInYear = 12
+const dayInMonth = 31
+const credential = "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB"
+
 type Location struct {
     Id   int
     Name string
@@ -105,8 +109,6 @@ type thirdDaySlice struct {
 }
 
 //Change
-const monthInYear = 12
-const dayInMonth = 31
 
 func OneYear() time.Duration {
     t1, _ := time.Parse("2006-01-02", "2021-12-01")
@@ -290,7 +292,7 @@ func getDateString(st, en string) string {
 }
 
 func getFirstDate() string {
-    db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+    db, err := sql.Open("mysql", credential)
     defer db.Close()
     if err != nil {
         log.Fatal(err)
@@ -382,7 +384,7 @@ func daySliceToMonth(dateDeb, dateFin string, down, up map[string][]thirdDaySlic
 ////////////////////////////////////////////////////////////////////////////////////Change End
 
 func getId(id_need, table, colName, val string) []int {
-    db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+    db, err := sql.Open("mysql", credential)
     defer db.Close()
     if err != nil {
         log.Fatal(err)
@@ -658,7 +660,7 @@ func main() {
     router.HandleFunc("/country", func(w http.ResponseWriter, r *http.Request) {
         var row Location
         country := make(map[int]string)
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
@@ -706,7 +708,7 @@ func main() {
         // regions map
         var row Location
         unordered_region := make(map[int]string)
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
@@ -760,7 +762,7 @@ func main() {
         city_ids := getId("Test_City_id", "Tests", "Test_Region_id", strconv.Itoa(region_id[0]))
         var row Location
         cities := make(map[int]string)
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
@@ -830,7 +832,7 @@ func main() {
         }
         //fmt.Println(sql_statement)
         //Connect to database
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
@@ -881,7 +883,7 @@ func main() {
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
 
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
@@ -969,7 +971,7 @@ func main() {
         //fmt.Println(yearDiff, monthDiff, dayDiff)
 
         //Base de données
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
@@ -1232,7 +1234,7 @@ func main() {
         //fmt.Println(yearDiff, monthDiff, dayDiff)
 
         //fmt.Println(st, en)
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
@@ -1459,7 +1461,7 @@ func main() {
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         //fmt.Println(st, en)
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
@@ -1700,7 +1702,7 @@ func main() {
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         //fmt.Println(st, en)
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
@@ -1813,7 +1815,7 @@ func main() {
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         //fmt.Println(st, en)
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
@@ -1980,7 +1982,7 @@ func main() {
         }
         //fmt.Println(sql_statement)
         //Connect to database
-        db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
+        db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
