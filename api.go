@@ -918,7 +918,7 @@ func main() {
                     if err := res.Scan(&m.DayStat_Date, &m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
                         log.Fatal(err)
                     }
-                    //fmt.Println(m.DayStat_Date)
+                    fmt.Println(m.DayStat_Date)
                     Date = append(Date, m.DayStat_Date)
                     D_AvgBW = append(D_AvgBW, m.DayStat_AvgBW)
                     D_MinBW = append(D_MinBW, m.DayStat_MinBW)
@@ -940,6 +940,7 @@ func main() {
                 to_send["D_MedianMinRTT"] = D_MedianMinRTT
                 done = true
             }
+            fmt.Println("to_send down:", to_send)
             if done {
                 sql_statement := "SELECT DayStat_Date,DayStat_AvgBW,DayStat_MinBW,DayStat_MaxBW,DayStat_MedianBw,DayStat_AvgMinRTT,DayStat_MinMinRTT,DayStat_MaxMinRTT,DayStat_MedianMinRTT from DayStat where DayStat_Type='Upload' and  DayStat_Date between '" + st + "' and '" + en + "'"
                 //fmt.Println(sql_statement)
