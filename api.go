@@ -1398,7 +1398,7 @@ func main() {
             }
             done = true
         }
-        //fmt.Println("Down with Avg:", down)
+        fmt.Println("Down with Avg:", down)
         if done {
             for i, y := range up {
                 days = append(days, i)
@@ -1429,21 +1429,21 @@ func main() {
             }
             done = true
         }
-        //fmt.Println("Up with Avg", up)
+        fmt.Println("Up with Avg", up)
         down_to_send := make(map[string][]thirdDaySlice)
         for d, l := range down {
             var key []thirdDaySlice
             key = constructDaySlice(l)
             down_to_send[d] = key
         }
-        //fmt.Println("down_to_send:", down_to_send)
+        fmt.Println("down_to_send:", down_to_send)
         up_to_send := make(map[string][]thirdDaySlice)
         for d, l := range down {
             var key []thirdDaySlice
             key = constructDaySlice(l)
             up_to_send[d] = key
         }
-        //fmt.Println("up_to_send:", up_to_send)
+        fmt.Println("up_to_send:", up_to_send)
         to_send := make(map[string]map[string][]thirdDaySlice)
         to_send["Download"] = down_to_send
         to_send["Upload"] = up_to_send
