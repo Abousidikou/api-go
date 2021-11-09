@@ -1201,7 +1201,7 @@ func main() {
             to_send["U_MedianMinRTT"] = U_MedianMinRTT
         }
 
-        fmt.Println("to_send:", to_send)
+        //fmt.Println("to_send:", to_send)
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         return
@@ -1231,7 +1231,7 @@ func main() {
         _, monthDiff, dayDiff := TimeDiff(st, en)
         //fmt.Println(yearDiff, monthDiff, dayDiff)
 
-        fmt.Println(st, en)
+        //fmt.Println(st, en)
         db, err := sql.Open("mysql", "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB")
         defer db.Close()
 
@@ -1357,7 +1357,7 @@ func main() {
             }
             done = true
         }
-        fmt.Println("Down with Avg:", down)
+        //fmt.Println("Down with Avg:", down)
         if done {
             for i, y := range up {
                 days = append(days, i)
@@ -1420,7 +1420,7 @@ func main() {
             } else if monthDiff > 60 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
             }
-            fmt.Println(datelisteDeb, datelisteFin)
+            //fmt.Println(datelisteDeb, datelisteFin)
             tp1 := make(map[string][]thirdDaySlice)
             tp2 := make(map[string][]thirdDaySlice)
             for ind := range datelisteDeb {
