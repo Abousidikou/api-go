@@ -16,7 +16,7 @@ import (
 
 const monthInYear = 12
 const dayInMonth = 31
-const credential = "root:Emery@123456789@tcp(127.0.0.1:3306)/monitorDB"
+const credential = "root:<password>@tcp(127.0.0.1:3306)/monitorDB"
 
 type Location struct {
     Id   int
