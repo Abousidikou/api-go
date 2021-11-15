@@ -1754,6 +1754,9 @@ func main() {
                     if err := res.Scan(&d); err != nil {
                         log.Fatal(err)
                     }
+                    if d == 0 {
+                        continue
+                    }
                     ////fmt.Println("Down Provider: ", d)
                 }
                 s := "DownSample_" + strconv.Itoa(d)
