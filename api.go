@@ -696,7 +696,7 @@ func main() {
         }
         fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
-        json.NewEncoder(w).Encode(country)
+        json.NewEncoder(w).Encode(countries)
         return
     })
 
@@ -706,7 +706,7 @@ func main() {
         urlCountry := vars["country"]
         fmt.Println("From Country: " + urlCountry)
         country_id := getId("Country_id", "Country", "Country_Name", urlCountry)[0]
-        fmt.Println(" Country id: " + country_id)
+        fmt.Println(" Country id: " + strconv.Itoa(country_id))
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -746,7 +746,7 @@ func main() {
         fmt.Println("Region: " + urlregion)
         //Get Region Id
         region_id := getId("Region_id", "Region", "Region_Name", urlregion)[0]
-        fmt.Println("Region_id: " + region_id)
+        fmt.Println("Region_id: " + strconv.Itoa(region_id))
 
         db, err := sql.Open("mysql", credential)
         defer db.Close()
@@ -1047,7 +1047,7 @@ func main() {
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         fmt.Println(st, en)
         _, monthDiff, dayDiff := TimeDiff(st, en)
-        fmt.Println(yearDiff, monthDiff, dayDiff)
+        fmt.Println(monthDiff, dayDiff)
 
         // faire la liste des date
         var datelisteDeb, datelisteFin []string
@@ -1215,7 +1215,7 @@ func main() {
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         fmt.Println(st, en)
         _, monthDiff, dayDiff := TimeDiff(st, en)
-        fmt.Println(yearDiff, monthDiff, dayDiff)
+        fmt.Println(monthDiff, dayDiff)
 
         // faire la liste des date
         var datelisteDeb, datelisteFin []string
@@ -1381,7 +1381,7 @@ func main() {
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         fmt.Println(st, en)
         _, monthDiff, dayDiff := TimeDiff(st, en)
-        fmt.Println(yearDiff, monthDiff, dayDiff)
+        fmt.Println(monthDiff, dayDiff)
 
         fmt.Println(st, en)
         db, err := sql.Open("mysql", credential)
@@ -1616,7 +1616,7 @@ func main() {
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         fmt.Println(st, en)
         _, monthDiff, dayDiff := TimeDiff(st, en)
-        fmt.Println(yearDiff, monthDiff, dayDiff)
+        fmt.Println(monthDiff, dayDiff)
 
         db, err := sql.Open("mysql", credential)
         defer db.Close()
