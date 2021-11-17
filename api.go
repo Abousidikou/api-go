@@ -937,7 +937,7 @@ func main() {
         done := false
         if !done {
             sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -957,7 +957,7 @@ func main() {
         }
         if done {
             sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
