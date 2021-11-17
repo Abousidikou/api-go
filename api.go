@@ -990,7 +990,7 @@ func main() {
         done := false
         if !done {
             sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -1010,7 +1010,7 @@ func main() {
         }
         if done {
             sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "'  and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -1030,7 +1030,7 @@ func main() {
             done = false
         }
 
-        ////fmt.Println(down, up)
+        fmt.Println(down, up)
         count["Download"] = down
         count["len_Down"] = len(down)
         count["Upload"] = up
