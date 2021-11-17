@@ -81,15 +81,15 @@ type avgMedianByDay struct {
     DayStat_MaxMinRTT    []byte `json:"MaxMinRTT"`
     DayStat_MedianMinRTT []byte `json:"MedianMinRTT"`
 }
+type tcpinfos struct {
+    Avg    []byte `json:"Avg"`
+    Min    []byte `json:"Min"`
+    Max    []byte `json:"Max"`
+    Median []byte `json:"Median"`
+}
 type paramTCPInfo struct {
     Date string
     id   int
-}
-type tcpinfos struct {
-    avg    int
-    min    int
-    max    int
-    median int
 }
 
 type daysliceData struct {
@@ -438,8 +438,6 @@ func getl(l []BW) ([]int, []int) {
 }
 
 func getAvg(l []int) int {
-    //fmt.Println("In getAvgMinMaxMedian")
-    //fmt.Println("List given:", l)
     var avg int
     var total int
     if len(l) == 0 {
@@ -1253,7 +1251,7 @@ func main() {
             datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
         }
 
-        fmt.Println(datelisteDeb, datelisteFin)
+        //fmt.Println(datelisteDeb, datelisteFin)
         //Base de données
         db, err := sql.Open("mysql", credential)
         defer db.Close()
@@ -1869,6 +1867,22 @@ func main() {
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         //fmt.Println(st, en)
+
+        // faire la liste des date
+        var datelisteDeb, datelisteFin []string
+        if dayDiff <= 35 {
+            datelisteDeb, datelisteFin = getMonthListe(st, en, 0)
+        } else if dayDiff > 35 && monthDiff != 0 && monthDiff <= 24 {
+            datelisteDeb, datelisteFin = getMonthListe(st, en, 1)
+        } else if monthDiff > 24 && monthDiff <= 48 {
+            datelisteDeb, datelisteFin = getMonthListe(st, en, 3)
+        } else if monthDiff > 48 && monthDiff <= 60 {
+            datelisteDeb, datelisteFin = getMonthListe(st, en, 6)
+        } else if monthDiff > 60 {
+            datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
+        }
+
+        //fmt.Println(datelisteDeb, datelisteFin)
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -1877,212 +1891,89 @@ func main() {
         }
 
         ////fmt.Println("Successful Connected")
-        done := false
-        Test := make(map[string]map[string][]int)
-        if !done {
-            sql_statement := "SELECT Test_Date,Test_TCPInfo_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
-            res, err := db.Query(sql_statement)
-            defer res.Close()
+        var date []string
+        var D_Avg []float64
+        var D_Min []float64
+        var D_Max []float64
+        var D_Median []float64
+        var U_Avg []float64
+        var U_Min []float64
+        var U_Max []float64
+        var U_Median []float64
 
-            if err != nil {
-                log.Fatal(err)
-            }
-            //fmt.Println("Request Successful Executed")
-            var c paramTCPInfo
-            w := make(map[string][]int)
-            var q []string
-            i := 0
-            for res.Next() {
-                if err := res.Scan(&c.Date, &c.id); err != nil {
+        for ind := range datelisteDeb {
+            //fmt.Println(datelisteDeb[ind], datelisteFin[ind])
+            date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
+            //var d_ids []int
+            //var u_ids []int
+            done := false
+            if !done {
+                sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
+                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
+                //fmt.Println(sql_statement)
+                res, err := db.Query(sql_statement)
+                defer res.Close()
+
+                if err != nil {
                     log.Fatal(err)
                 }
-                //fmt.Println("c:", c)
-                d := c.Date
-                found := FindString(q, d)
-                if i == 0 || !found {
-                    _, f := w[d]
-                    if f == false {
-                        var s1 []int
-                        s1 = append(s1, c.id)
-                        w[d] = s1
-                        q = append(q, d)
-                        i++
-                        continue
+                //fmt.Println("Request Successful Executed")
+                var m tcpinfos
+                for res.Next() {
+                    if err := res.Scan(&m.Avg, &m.Min, &m.Max, &m.Median); err != nil {
+                        log.Fatal(err)
                     }
-                    w[d] = append(w[d], c.id)
-                    q = append(q, d)
-                    i++
-                    continue
+
+                    s, _ := strconv.ParseFloat(string(m.Avg), 10)
+                    D_Avg = append(D_AvgBW, s)
+                    s, _ = strconv.ParseFloat(string(m.Min), 10)
+                    D_Min = append(D_MinBW, s)
+                    s, _ = strconv.ParseFloat(string(m.Max), 10)
+                    D_Max = append(D_MaxBW, s)
+                    s, _ = strconv.ParseFloat(string(m.Median), 10)
+                    D_Median = append(D_MedianBW, s)
                 }
-                w[d] = append(w[d], c.id)
-                q = append(q, d)
-                i++
-                //fmt.Println("w:", w)
+                done = true
             }
-            Test["Download"] = w
+            if done {
+                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
+                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
+                //fmt.Println(sql_statement)
+                res, err := db.Query(sql_statement)
+                defer res.Close()
 
-            done = true
-        }
-        //fmt.Println("Download:", Test)
-        if done {
-            sql_statement := "SELECT Test_Date,Test_TCPInfo_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
-            res, err := db.Query(sql_statement)
-            defer res.Close()
-
-            if err != nil {
-                log.Fatal(err)
-            }
-            ////fmt.Println("Request Successful Executed")
-            var c paramTCPInfo
-            w := make(map[string][]int)
-            //var slice []int
-            var q []string
-            i := 0
-            for res.Next() {
-                if err := res.Scan(&c.Date, &c.id); err != nil {
+                if err != nil {
                     log.Fatal(err)
                 }
-                //fmt.Println(c)
-                d := c.Date
-                found := FindString(q, d)
-                if i == 0 || !found {
-                    _, f := w[d]
-                    if f == false {
-                        var s1 []int
-                        s1 = append(s1, c.id)
-                        w[d] = s1
-                        q = append(q, d)
-                        i++
-                        continue
-                    }
-                    w[d] = append(w[d], c.id)
-                    q = append(q, d)
-                    i++
-                    continue
-                }
-                w[d] = append(w[d], c.id)
-                q = append(q, d)
-                i++
-            }
-            Test["Upload"] = w
-            done = false
-        }
-        //fmt.Println("Test:", Test)
-
-        if !done {
-            for key, tcpinfo_ids := range Test["Download"] {
-                // tcpinfo_ids is list [4,5,2,6,5]
-                //fmt.Println("ids:", tcpinfo_ids)
-                var avgg []int
-                var minn []int
-                var maxx []int
-                var mediann []int
-                var avgSlice []int
-                for _, id := range tcpinfo_ids {
-                    sql_statement := "SELECT Avg" + param + ",Min" + param + ",Max" + param + ",Median" + param + " from TCPInfo where TCPInfo_id=" + strconv.Itoa(id)
-                    //fmt.Println(sql_statement)
-                    res, err := db.Query(sql_statement)
-                    defer res.Close()
-
-                    if err != nil {
+                var m tcpinfos
+                for res.Next() {
+                    if err := res.Scan(&m.Avg, &m.Min, &m.Max, &m.Median); err != nil {
                         log.Fatal(err)
                     }
-                    ////fmt.Println("Request Successful Executed")
-                    var c tcpinfos
 
-                    for res.Next() {
-                        if err := res.Scan(&c.avg, &c.min, &c.max, &c.median); err != nil {
-                            log.Fatal(err)
-                        }
-                        //fmt.Println(c)
-                        avgg = append(avgg, c.avg)
-                        minn = append(minn, c.min)
-                        maxx = append(maxx, c.max)
-                        mediann = append(mediann, c.median)
-                    }
+                    s, _ := strconv.ParseFloat(string(m.Avg), 10)
+                    U_Avg = append(U_AvgBW, s)
+                    s, _ = strconv.ParseFloat(string(m.Min), 10)
+                    U_Min = append(U_MinBW, s)
+                    s, _ = strconv.ParseFloat(string(m.Max), 10)
+                    U_Max = append(U_MaxBW, s)
+                    s, _ = strconv.ParseFloat(string(m.Median), 10)
+                    U_Median = append(U_MedianBW, s)
                 }
-                //fmt.Println(avgg, minn, maxx, mediann)
-                avgSlice = append(avgSlice, getAvg(avgg))
-                avgSlice = append(avgSlice, getAvg(minn))
-                avgSlice = append(avgSlice, getAvg(maxx))
-                avgSlice = append(avgSlice, getAvg(mediann))
-                Test["Download"][key] = avgSlice
+                done = false
             }
-            done = true
         }
-
-        if done {
-            for key, tcpinfo_ids := range Test["Upload"] {
-                // tcpinfo_ids is list [4,5,2,6,5]
-                //fmt.Println(tcpinfo_ids)
-                var avgg []int
-                var minn []int
-                var maxx []int
-                var mediann []int
-                var avgSlice []int
-                for _, id := range tcpinfo_ids {
-                    sql_statement := "SELECT Avg" + param + ", Min" + param + ", Max" + param + ", Median" + param + " from TCPInfo where TCPInfo_id=" + strconv.Itoa(id)
-                    //fmt.Println(sql_statement)
-                    res, err := db.Query(sql_statement)
-                    defer res.Close()
-
-                    if err != nil {
-                        log.Fatal(err)
-                    }
-                    ////fmt.Println("Request Successful Executed")
-                    var c tcpinfos
-
-                    for res.Next() {
-                        if err := res.Scan(&c.avg, &c.min, &c.max, &c.median); err != nil {
-                            log.Fatal(err)
-                        }
-                        //fmt.Println(c)
-                        avgg = append(avgg, c.avg)
-                        minn = append(minn, c.min)
-                        maxx = append(maxx, c.max)
-                        mediann = append(mediann, c.median)
-                    }
-                    //fmt.Println(avgg, minn, maxx, mediann)
-                }
-                avgSlice = append(avgSlice, getAvg(avgg))
-                avgSlice = append(avgSlice, getAvg(minn))
-                avgSlice = append(avgSlice, getAvg(maxx))
-                avgSlice = append(avgSlice, getAvg(mediann))
-                Test["Upload"][key] = avgSlice
-            }
-            done = false
-        }
-        //fmt.Println("Test['Download']:", Test["Download"])
-        //fmt.Println("Test['Upload']:", Test["Upload"])
 
         to_send := make(map[string]interface{})
-        for t := range Test {
-
-            var days []string
-            var avgs []int
-            var mins []int
-            var maxs []int
-            var medians []int
-            all := make(map[string][]int)
-            for key, value := range Test[t] {
-                days = append(days, key)
-                avgs = append(avgs, value[0])
-                mins = append(mins, value[1])
-                maxs = append(maxs, value[2])
-                medians = append(medians, value[3])
-            }
-            all["avg"] = avgs
-            all["min"] = mins
-            all["max"] = maxs
-            all["median"] = medians
-            a := t + "_Day"
-            to_send[a] = days
-            a = t + "_Data"
-            to_send[a] = all
-        }
-
+        to_send["D_Date"] = date
+        to_send["D_Avg"] = D_Avg
+        to_send["D_Min"] = D_Min
+        to_send["D_Max"] = D_Max
+        to_send["D_Median"] = D_Median
+        to_send["U_Avg"] = U_Avg
+        to_send["U_Min"] = U_Min
+        to_send["U_Max"] = U_Max
+        to_send["U_Median"] = U_MedianBW
         //fmt.Println(to_send)
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
