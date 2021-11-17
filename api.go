@@ -2443,7 +2443,7 @@ func main() {
 }
 
 func logOutput() func() {
-    logfile := `logfile`
+    logfile := `ServerApiLogs`
     // open file read/write | create if not exist | clear file at open if exists
     f, _ := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 
