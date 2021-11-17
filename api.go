@@ -4,8 +4,10 @@ import (
     "database/sql"
     "encoding/json"
     "fmt"
+    "io"
     "log"
     "net/http"
+    "os"
     "strconv"
     "strings"
     "time"
@@ -661,59 +663,50 @@ func rangeString(l []string) []string {
 }
 
 func main() {
-
+    fn := logOutput()
+    defer fn()
     router := mux.NewRouter()
     router.HandleFunc("/country", func(w http.ResponseWriter, r *http.Request) {
-        var row Location
-        country := make(map[int]string)
+        fmt.Println("Countries Retriving...")
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
             log.Fatal(err)
         }
-        country_ids := getId("Test_Country_id", "Tests", "", "")
-        country_ids = unicInt(country_ids)
-        //fmt.Println("Country ids:", country_ids)
-
-        ////fmt.Println("Successful Connected")
-
-        for _, id := range country_ids {
-            res, err := db.Query("SELECT * FROM Country where Country_id=" + strconv.Itoa(id))
-            defer res.Close()
+        fmt.Println("Successful Connected")
+        var countries []string
+        sql_statement := "select Country_name from Country where Country_id in (select Test_Country_id from Tests)"
+        fmt.Println(sql_statement)
+        res, err := db.Query(sql_statement)
+        defer res.Close()
+        if err != nil {
+            log.Fatal(err)
+        }
+        fmt.Println("Request executed well")
+        var s string
+        for res.Next() {
+            err := res.Scan(&s)
 
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request executed well")
-            for res.Next() {
+            countries = append(countries, s)
 
-                err := res.Scan(&row.Id, &row.Name)
-
-                if err != nil {
-                    log.Fatal(err)
-                }
-                country[row.Id] = row.Name
-            }
         }
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(country)
         return
     })
 
     router.HandleFunc("/region/{country}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Regions Retriving...")
         vars := mux.Vars(r)
         urlCountry := vars["country"]
-        //fmt.Println("Country: " + urlCountry)
-        //Get Country Id
+        fmt.Println("From Country: " + urlCountry)
         country_id := getId("Country_id", "Country", "Country_Name", urlCountry)[0]
-        //fmt.Println(country_id)
-        // Get Rgions Ids
-        //region_ids := getId("Test_Region_id", "Tests", "Test_Country_id", strconv.Itoa(country_id))
-        //fmt.Println(region_ids)
-        // regions map
-        //var row Location
-        //unordered_region := make(map[int]string)
+        fmt.Println(" Country id: " + country_id)
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -721,45 +714,16 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
-        /*i := 0
-          for _, id := range region_ids {
-              //fmt.Println("region_id: ", id)
-              res, err := db.Query("SELECT Region_Name FROM Region where Region_id in (select Test_Region_id from Tests where Test_Country_id='" + strconv.Itoa(country_id) + "')")
-              defer res.Close()
-              if err != nil {
-                  log.Fatal(err)
-              }
-              ////fmt.Println("Request executed well")
-              for res.Next() {
-
-                  err := res.Scan(&row.Id, &row.Name)
-
-                  if err != nil {
-                      log.Fatal(err)
-                  }
-                  unordered_region[i] = row.Name
-                  i++
-              }
-          }
-          var region []string
-          for _, val := range unordered_region {
-              found := FindString(region, val)
-              if !found {
-                  region = append(region, val)
-              }
-          }
-          region = unicString(region)
-          //fmt.Println(region)
-          region = rangeString(region)
-          //fmt.Println(region)*/
+        fmt.Println("Successful Connected")
         var regions []string
-        res, err := db.Query("SELECT Region_Name FROM Region where Region_id in (select Test_Region_id from Tests where Test_Country_id='" + strconv.Itoa(country_id) + "')")
+        sql_statement := "SELECT Region_Name FROM Region where Region_id in (select Test_Region_id from Tests where Test_Country_id='" + strconv.Itoa(country_id) + "')"
+        fmt.Println(sql_statement)
+        res, err := db.Query(sql_statement)
         defer res.Close()
         if err != nil {
             log.Fatal(err)
         }
-        ////fmt.Println("Request executed well")
+        fmt.Println("Request executed well")
         var s string
         for res.Next() {
             err := res.Scan(&s)
@@ -770,22 +734,20 @@ func main() {
             regions = append(regions, s)
 
         }
-
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(regions)
         return
     })
     router.HandleFunc("/city/{region}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Cities Retriving...")
         vars := mux.Vars(r)
         urlregion := vars["region"]
-        //fmt.Println("Region: " + urlregion)
+        fmt.Println("Region: " + urlregion)
         //Get Region Id
         region_id := getId("Region_id", "Region", "Region_Name", urlregion)[0]
-        //fmt.Println("Region_id: " + urlregion)
-        // Get City ids
-        //city_ids := getId("Test_City_id", "Tests", "Test_Region_id", strconv.Itoa(region_id[0]))
-        //var row Location
-        //cities := make(map[int]string)
+        fmt.Println("Region_id: " + region_id)
+
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -793,35 +755,17 @@ func main() {
             log.Fatal(err)
         }
 
-        /* ////fmt.Println("Successful Connected")
-           for _, id := range city_ids {
-               ////fmt.Println("region_id: ", id)
-               res, err := db.Query("SELECT City_id,City_Name FROM City where City_id=" + strconv.Itoa(id))
-               defer res.Close()
-               if err != nil {
-                   log.Fatal(err)
-               }
-               ////fmt.Println("Request executed well")
-               i := 0
-               for res.Next() {
+        fmt.Println("Successful Connected")
 
-                   err := res.Scan(&row.Id, &row.Name)
-
-                   if err != nil {
-                       log.Fatal(err)
-                   }
-                   cities[i] = row.Name
-                   i++
-               }
-           }*/
         var cities []string
-        ////fmt.Println("region_id: ", id) strconv.Itoa(id)
-        res, err := db.Query("SELECT City_Name FROM City where City_id in (select Test_City_id from Tests where Test_Region_id='" + strconv.Itoa(region_id) + "')")
+        sql_statement := "SELECT City_Name FROM City where City_id in (select Test_City_id from Tests where Test_Region_id='" + strconv.Itoa(region_id) + "')"
+        fmt.Println(sql_statement)
+        res, err := db.Query(sql_statement)
         defer res.Close()
         if err != nil {
             log.Fatal(err)
         }
-        ////fmt.Println("Request executed well")
+        fmt.Println("Request executed well")
         var s string
         for res.Next() {
 
@@ -832,6 +776,7 @@ func main() {
             }
             cities = append(cities, s)
         }
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(cities)
 
@@ -839,6 +784,7 @@ func main() {
     })
 
     router.HandleFunc("/Sample/{typeofparam}/{param}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Sample")
         vars := mux.Vars(r)
         typeOfParam := vars["typeofparam"]
         param := vars["param"]
@@ -872,7 +818,7 @@ func main() {
             city_id := getId("City_id", "City", "City_Name", param)
             sql_statement = "SELECT count(*) FROM Tests where Test_City_id=" + strconv.Itoa(city_id[0]) + " and Test_Type='Upload'"
         }
-        //fmt.Println(sql_statement)
+        fmt.Println(sql_statement)
         //Connect to database
         db, err := sql.Open("mysql", credential)
         defer db.Close()
@@ -880,7 +826,7 @@ func main() {
         if err != nil {
             log.Fatal(err)
         }
-        ////fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
 
         res, err := db.Query(sql_statement)
         defer res.Close()
@@ -894,7 +840,7 @@ func main() {
             count["Sample"] = c
         }
 
-        ////fmt.Println(count)
+        fmt.Println(count)
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(count)
         return
@@ -902,6 +848,7 @@ func main() {
 
     //Change
     router.HandleFunc("/percentageByService/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Percentage By Service")
         var down, up []int
         count := make(map[string]interface{})
         var vars = mux.Vars(r)
@@ -915,13 +862,11 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category, category_id)
+        fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
-        /*st := strings.Join(startDate, "-")
-          en := strings.Join(endDate, "-")*/
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
 
@@ -932,7 +877,7 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
 
         done := false
         if !done {
@@ -977,18 +922,19 @@ func main() {
             done = false
         }
 
-        ////fmt.Println(down, up)
+        //fmt.Println(down, up)
         count["Download"] = down
         count["len_Down"] = len(down)
         count["Upload"] = up
         count["len_Up"] = len(up)
-        ////fmt.Println(count)
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(count)
         return
     })
 
     router.HandleFunc("/percentageByProvider/{provider}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Percentage By Service for Providers")
         var down, up []int
         count := make(map[string]interface{})
         var vars = mux.Vars(r)
@@ -1003,12 +949,12 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category_id, category)
+        fmt.Println(category_id, category)
         prov_ID := getId("Provider_id", "Provider", "Provider_AS_Name", provider_name)[0]
         fmt.Println("Prov ID", prov_ID)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
         /*st := strings.Join(startDate, "-")
           en := strings.Join(endDate, "-")*/
@@ -1022,19 +968,19 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
 
         done := false
         if !done {
             sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request Successful Executed")
+            fmt.Println("Request Successful Executed")
             var c int
             for res.Next() {
                 if err := res.Scan(&c); err != nil {
@@ -1047,7 +993,7 @@ func main() {
         }
         if done {
             sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "'  and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -1072,7 +1018,7 @@ func main() {
         count["len_Down"] = len(down)
         count["Upload"] = up
         count["len_Up"] = len(up)
-        ////fmt.Println(count)
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(count)
         return
@@ -1080,6 +1026,7 @@ func main() {
 
     //Change
     router.HandleFunc("/medianByDay/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Bandwidth..")
         var vars = mux.Vars(r)
         category := vars["type"]
         category_Name := vars["type_id"]
@@ -1091,16 +1038,16 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category, category_id)
+        fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
-        //fmt.Println(st, en)
+        fmt.Println(st, en)
         _, monthDiff, dayDiff := TimeDiff(st, en)
-        //fmt.Println(yearDiff, monthDiff, dayDiff)
+        fmt.Println(yearDiff, monthDiff, dayDiff)
 
         // faire la liste des date
         var datelisteDeb, datelisteFin []string
@@ -1125,7 +1072,7 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
 
         to_send := make(map[string]interface{})
         var date []string
@@ -1146,22 +1093,19 @@ func main() {
         var U_MaxMinRTT []float64
         var U_MedianMinRTT []float64
         for ind := range datelisteDeb {
-            //fmt.Println(datelisteDeb[ind], datelisteFin[ind])
+            fmt.Println(datelisteDeb[ind], datelisteFin[ind])
             date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
-            //var d_ids []int
-            //var u_ids []int
             done := false
             if !done {
                 sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
-                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
                 if err != nil {
                     log.Fatal(err)
                 }
-                //fmt.Println("Request Successful Executed")
+                fmt.Println("Request Successful Executed")
                 var m avgMedianByDay
                 for res.Next() {
                     if err := res.Scan(&m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
@@ -1189,8 +1133,7 @@ func main() {
             }
             if done {
                 sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
-                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
@@ -1202,7 +1145,6 @@ func main() {
                     if err := res.Scan(&m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
                         log.Fatal(err)
                     }
-                    //fmt.Println(string(m.DayStat_AvgBW))
                     s, _ := strconv.ParseFloat(string(m.DayStat_AvgBW), 10)
                     U_AvgBW = append(U_AvgBW, s)
                     s, _ = strconv.ParseFloat(string(m.DayStat_MinBW), 10)
@@ -1241,7 +1183,7 @@ func main() {
         to_send["U_MaxMinRTT"] = U_MaxMinRTT
         to_send["U_MedianMinRTT"] = U_MedianMinRTT
 
-        //fmt.Println("to_send:", to_send)
+        fmt.Println("Done:", to_send["D_Date"])
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         return
@@ -1249,6 +1191,7 @@ func main() {
 
     //Change
     router.HandleFunc("/medianByProvider/{provider}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Bandwidth For Providers")
         var vars = mux.Vars(r)
         provider_name := vars["provider"]
         prov_ID := getId("Provider_id", "Provider", "Provider_AS_Name", provider_name)[0]
@@ -1263,16 +1206,16 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category, category_id)
+        fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
-        //fmt.Println(st, en)
+        fmt.Println(st, en)
         _, monthDiff, dayDiff := TimeDiff(st, en)
-        //fmt.Println(yearDiff, monthDiff, dayDiff)
+        fmt.Println(yearDiff, monthDiff, dayDiff)
 
         // faire la liste des date
         var datelisteDeb, datelisteFin []string
@@ -1288,7 +1231,7 @@ func main() {
             datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
         }
 
-        //fmt.Println(datelisteDeb, datelisteFin)
+        fmt.Println(datelisteDeb, datelisteFin)
         //Base de données
         db, err := sql.Open("mysql", credential)
         defer db.Close()
@@ -1297,7 +1240,7 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
 
         to_send := make(map[string]interface{})
         var date []string
@@ -1318,15 +1261,12 @@ func main() {
         var U_MaxMinRTT []float64
         var U_MedianMinRTT []float64
         for ind := range datelisteDeb {
-            //fmt.Println(datelisteDeb[ind], datelisteFin[ind])
+            fmt.Println(datelisteDeb[ind], datelisteFin[ind])
             date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
-            //var d_ids []int
-            //var u_ids []int
             done := false
             if !done {
                 sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
-                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
@@ -1361,8 +1301,7 @@ func main() {
             }
             if done {
                 sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
-                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
@@ -1413,7 +1352,7 @@ func main() {
         to_send["U_MaxMinRTT"] = U_MaxMinRTT
         to_send["U_MedianMinRTT"] = U_MedianMinRTT
 
-        //fmt.Println("to_send:", to_send)
+        fmt.Println("Done:", to_send["D_Date"])
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         return
@@ -1421,6 +1360,7 @@ func main() {
 
     // Return the highest AvgBW of the Day
     router.HandleFunc("/bandByDaySlice/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Bandwidth by day slice")
         var vars = mux.Vars(r)
         category := vars["type"]
         category_Name := vars["type_id"]
@@ -1432,18 +1372,18 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category, category_id)
+        fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
-        //fmt.Println(st, en)
+        fmt.Println(st, en)
         _, monthDiff, dayDiff := TimeDiff(st, en)
-        //fmt.Println(yearDiff, monthDiff, dayDiff)
+        fmt.Println(yearDiff, monthDiff, dayDiff)
 
-        //fmt.Println(st, en)
+        fmt.Println(st, en)
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -1451,20 +1391,20 @@ func main() {
             log.Fatal(err)
         }
 
-        //fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
         down := make(map[string][][]int)
         up := make(map[string][][]int)
         done := false
         if !done {
             sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request Successful Executed")
+            fmt.Println("Request Successful Executed")
             var m daysliceFromTest
             var q []string
             i := 0
@@ -1498,14 +1438,14 @@ func main() {
         //fmt.Println("downDay3:", down)
         if done {
             sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request Successful Executed")
+            fmt.Println("Request Successful Executed")
             var m daysliceFromTest
             var q []string
             i := 0
@@ -1546,14 +1486,14 @@ func main() {
                 for _, id := range y[1] {
                     //fmt.Println("bbrinfo id:", id)
                     sql_statement := "SELECT AvgBW from BBRInfo where BBRInfo_id=" + strconv.Itoa(id)
-                    //fmt.Println(sql_statement)
+                    fmt.Println(sql_statement)
                     res, err := db.Query(sql_statement)
                     defer res.Close()
 
                     if err != nil {
                         log.Fatal(err)
                     }
-                    ////fmt.Println("Request Successful Executed")
+                    fmt.Println("Request Successful Executed")
                     var c int
                     for res.Next() {
                         if err := res.Scan(&c); err != nil {
@@ -1632,7 +1572,7 @@ func main() {
             } else if monthDiff > 60 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
             }
-            //fmt.Println(datelisteDeb, datelisteFin)
+            fmt.Println(datelisteDeb, datelisteFin)
             tp1 := make(map[string][]thirdDaySlice)
             tp2 := make(map[string][]thirdDaySlice)
             for ind := range datelisteDeb {
@@ -1644,6 +1584,7 @@ func main() {
             to_send["Download"] = tp1
             to_send["Upload"] = tp2
         }
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         //w.Write(jsonrep)
@@ -1651,6 +1592,7 @@ func main() {
     })
 
     router.HandleFunc("/bandByDaySliceProvider/{provider}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Bandwidth by DaySlice for Providers")
         var vars = mux.Vars(r)
         provider_name := vars["provider"]
         prov_ID := getId("Provider_id", "Provider", "Provider_AS_Name", provider_name)[0]
@@ -1665,18 +1607,17 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category, category_id)
+        fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
-        //fmt.Println(st, en)
+        fmt.Println(st, en)
         _, monthDiff, dayDiff := TimeDiff(st, en)
-        //fmt.Println(yearDiff, monthDiff, dayDiff)
+        fmt.Println(yearDiff, monthDiff, dayDiff)
 
-        //fmt.Println(st, en)
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -1684,7 +1625,7 @@ func main() {
             log.Fatal(err)
         }
 
-        //fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
         down := make(map[string][][]int)
         up := make(map[string][][]int)
         done := false
@@ -1697,7 +1638,7 @@ func main() {
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request Successful Executed")
+            fmt.Println("Request Successful Executed")
             var m daysliceFromTest
             var q []string
             i := 0
@@ -1731,14 +1672,14 @@ func main() {
         //fmt.Println("downDay3:", down)
         if done {
             sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_Date between '" + st + "' and '" + en + "'"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request Successful Executed")
+            fmt.Println("Request Successful Executed")
             var m daysliceFromTest
             var q []string
             i := 0
@@ -1779,14 +1720,14 @@ func main() {
                 for _, id := range y[1] {
                     //fmt.Println("bbrinfo id:", id)
                     sql_statement := "SELECT AvgBW from BBRInfo where BBRInfo_id=" + strconv.Itoa(id)
-                    //fmt.Println(sql_statement)
+                    fmt.Println(sql_statement)
                     res, err := db.Query(sql_statement)
                     defer res.Close()
 
                     if err != nil {
                         log.Fatal(err)
                     }
-                    ////fmt.Println("Request Successful Executed")
+                    fmt.Println("Request Successful Executed")
                     var c int
                     for res.Next() {
                         if err := res.Scan(&c); err != nil {
@@ -1808,16 +1749,16 @@ func main() {
                 days = append(days, i)
                 var bw []int
                 for _, id := range y[1] {
-                    //fmt.Println("bbrinfo id:", id)
+                    fmt.Println("bbrinfo id:", id)
                     sql_statement := "SELECT AvgBW from BBRInfo where BBRInfo_id=" + strconv.Itoa(id)
-                    //fmt.Println(sql_statement)
+                    fmt.Println(sql_statement)
                     res, err := db.Query(sql_statement)
                     defer res.Close()
 
                     if err != nil {
                         log.Fatal(err)
                     }
-                    ////fmt.Println("Request Successful Executed")
+                    fmt.Println("Request Successful Executed")
                     var c int
                     for res.Next() {
                         if err := res.Scan(&c); err != nil {
@@ -1865,7 +1806,7 @@ func main() {
             } else if monthDiff > 60 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
             }
-            //fmt.Println(datelisteDeb, datelisteFin)
+            fmt.Println(datelisteDeb, datelisteFin)
             tp1 := make(map[string][]thirdDaySlice)
             tp2 := make(map[string][]thirdDaySlice)
             for ind := range datelisteDeb {
@@ -1877,6 +1818,7 @@ func main() {
             to_send["Download"] = tp1
             to_send["Upload"] = tp2
         }
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         //w.Write(jsonrep)
@@ -1884,6 +1826,7 @@ func main() {
     })
 
     router.HandleFunc("/tcpinfo/{param}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("TCP Infos")
         var vars = mux.Vars(r)
         param := vars["param"]
         category := vars["type"]
@@ -1896,14 +1839,14 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category, category_id)
+        fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
-        //fmt.Println(st, en)
+        fmt.Println(st, en)
 
         _, monthDiff, dayDiff := TimeDiff(st, en)
 
@@ -1921,7 +1864,7 @@ func main() {
             datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
         }
 
-        //fmt.Println(datelisteDeb, datelisteFin)
+        fmt.Println(datelisteDeb, datelisteFin)
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -1929,7 +1872,7 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
         var date []string
         var D_Avg []float64
         var D_Min []float64
@@ -1941,10 +1884,8 @@ func main() {
         var U_Median []float64
 
         for ind := range datelisteDeb {
-            //fmt.Println(datelisteDeb[ind], datelisteFin[ind])
+            fmt.Println(datelisteDeb[ind], datelisteFin[ind])
             date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
-            //var d_ids []int
-            //var u_ids []int
             done := false
             if !done {
                 sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
@@ -1976,14 +1917,14 @@ func main() {
             }
             if done {
                 sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
-                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
                 if err != nil {
                     log.Fatal(err)
                 }
+                fmt.Println("Successful Connected")
                 var m tcpinfos
                 for res.Next() {
                     if err := res.Scan(&m.Avg, &m.Min, &m.Max, &m.Median); err != nil {
@@ -2013,13 +1954,14 @@ func main() {
         to_send["U_Min"] = U_Min
         to_send["U_Max"] = U_Max
         to_send["U_Median"] = U_Median
-        //fmt.Println(to_send)
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         return
     })
 
     router.HandleFunc("/tcpinfoProvider/{provider}/{param}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("TCP Infos for Providers")
         var vars = mux.Vars(r)
         provider_name := vars["provider"]
         prov_ID := getId("Provider_id", "Provider", "Provider_AS_Name", provider_name)[0]
@@ -2035,14 +1977,14 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category, category_id)
+        fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
-        //fmt.Println(st, en)
+        fmt.Println(st, en)
 
         _, monthDiff, dayDiff := TimeDiff(st, en)
 
@@ -2060,7 +2002,7 @@ func main() {
             datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
         }
 
-        //fmt.Println(datelisteDeb, datelisteFin)
+        fmt.Println(datelisteDeb, datelisteFin)
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -2068,7 +2010,7 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
         var date []string
         var D_Avg []float64
         var D_Min []float64
@@ -2087,7 +2029,6 @@ func main() {
             done := false
             if !done {
                 sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
-                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -2095,7 +2036,7 @@ func main() {
                 if err != nil {
                     log.Fatal(err)
                 }
-                //fmt.Println("Request Successful Executed")
+                fmt.Println("Request Successful Executed")
                 var m tcpinfos
                 for res.Next() {
                     if err := res.Scan(&m.Avg, &m.Min, &m.Max, &m.Median); err != nil {
@@ -2115,7 +2056,6 @@ func main() {
             }
             if done {
                 sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
-                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -2123,6 +2063,7 @@ func main() {
                 if err != nil {
                     log.Fatal(err)
                 }
+                fmt.Println("Successful Connected")
                 var m tcpinfos
                 for res.Next() {
                     if err := res.Scan(&m.Avg, &m.Min, &m.Max, &m.Median); err != nil {
@@ -2152,12 +2093,14 @@ func main() {
         to_send["U_Min"] = U_Min
         to_send["U_Max"] = U_Max
         to_send["U_Median"] = U_Median
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         return
     })
 
     router.HandleFunc("/providerSample/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Provider samples")
         var vars = mux.Vars(r)
         category := vars["type"]
         category_Name := vars["type_id"]
@@ -2169,15 +2112,14 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category, category_id)
-        //fmt.Println(category, category_id)
+        fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
-        //fmt.Println(st, en)
+        fmt.Println(st, en)
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -2185,19 +2127,19 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
         prov := make(map[string]Provider)
         done := false
         if !done {
             sql_statement := "SELECT Provider_id,Provider_ISP,Provider_AS_Number,Provider_AS_Name from Provider"
-            //fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
             if err != nil {
                 log.Fatal(err)
             }
-            //fmt.Println("Request Successful Executed")
+            fmt.Println("Request Successful Executed")
             var m Provider
             i := 0
             for res.Next() {
@@ -2218,14 +2160,14 @@ func main() {
             for _, provider := range prov {
                 ////fmt.Println("Provider select : ", provider.Id)
                 sql_statement := "SELECT count(*) from Tests where Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + st + "' and '" + en + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
                 if err != nil {
                     log.Fatal(err)
                 }
-                ////fmt.Println("Request Successful Executed")
+                fmt.Println("Request Successful Executed")
                 for res.Next() {
                     if err := res.Scan(&d); err != nil {
                         log.Fatal(err)
@@ -2246,14 +2188,14 @@ func main() {
             for _, provider := range prov {
                 ////fmt.Println("Provider select : ", provider.Id)
                 sql_statement := "SELECT count(*) from Tests where Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + st + "' and '" + en + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
                 if err != nil {
                     log.Fatal(err)
                 }
-                ////fmt.Println("Request Successful Executed")
+                fmt.Println("Request Successful Executed")
                 for res.Next() {
                     if err := res.Scan(&u); err != nil {
                         log.Fatal(err)
@@ -2268,13 +2210,14 @@ func main() {
             done = true
         }
         //fmt.Println("Up and final prov:", prov)
-        //fmt.Println(prov)
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(prov)
         return
     })
 
     router.HandleFunc("/providerBW/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Providers Average Bandwidth")
         var vars = mux.Vars(r)
         category := vars["type"]
         category_Name := vars["type_id"]
@@ -2286,14 +2229,14 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category, category_id)
+        fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
-        //fmt.Println(st, en)
+        fmt.Println(st, en)
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -2301,20 +2244,20 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
 
         prov := make(map[string]Provider)
         done := false
         if !done {
             sql_statement := "SELECT Provider_id,Provider_ISP,Provider_AS_Number,Provider_AS_Name from Provider"
-            ////fmt.Println(sql_statement)
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request Successful Executed")
+            fmt.Println("Request Successful Executed")
             var m Provider
             i := 0
             for res.Next() {
@@ -2333,14 +2276,14 @@ func main() {
         if done {
             for _, provider := range prov {
                 sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "'"
-                ////fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
                 var ids []int
                 if err != nil {
                     log.Fatal(err)
                 }
-                ////fmt.Println("Request Successful Executed")
+                fmt.Println("Request Successful Executed")
                 var c int
                 for res.Next() {
                     if err := res.Scan(&c); err != nil {
@@ -2360,14 +2303,14 @@ func main() {
         if !done {
             for _, provider := range prov {
                 sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "'"
-                ////fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
                 var ids []int
                 if err != nil {
                     log.Fatal(err)
                 }
-                ////fmt.Println("Request Successful Executed")
+                fmt.Println("Request Successful Executed")
                 var c int
                 for res.Next() {
                     if err := res.Scan(&c); err != nil {
@@ -2393,13 +2336,13 @@ func main() {
                 var bwl []BW
                 for _, id := range idl {
                     sql_statement := "SELECT AvgBW,AvgMinRTT from BBRInfo where BBRInfo_id='" + strconv.Itoa(id) + "' "
-                    ////fmt.Println(sql_statement)
+                    fmt.Println(sql_statement)
                     res, err := db.Query(sql_statement)
                     defer res.Close()
                     if err != nil {
                         log.Fatal(err)
                     }
-                    ////fmt.Println("Request Successful Executed")
+                    fmt.Println("Request Successful Executed")
                     var bw BW
                     for res.Next() {
                         if err := res.Scan(&bw.BW, &bw.MinRTT); err != nil {
@@ -2418,7 +2361,7 @@ func main() {
             }
 
         }
-
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         //json.NewEncoder(w).Encode(prov)
         json.NewEncoder(w).Encode(provBW)
@@ -2426,6 +2369,7 @@ func main() {
     })
 
     router.HandleFunc("/providersListe/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Provider list")
         var vars = mux.Vars(r)
         category := vars["type"]
         category_Name := vars["type_id"]
@@ -2437,13 +2381,11 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(category, category_id)
+        fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
-        //fmt.Println(startDate, endDate)
+        fmt.Println(startDate, endDate)
 
-        /*st := strings.Join(startDate, "-")
-          en := strings.Join(endDate, "-")*/
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
 
@@ -2454,31 +2396,32 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
+        fmt.Println("Successful Connected")
         var prov_liste []string
         done := false
         if !done {
             sql_statement := "select Provider_AS_Name from Provider where Provider_id in (select Test_Provider_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "')"
-            //fmt.Println(sql_statement) "select Provider_AS_Name,Provider_id from Provider where Provider_id in (select Test_Provider_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '"+st+"' and '"+en+"')"
+            fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request Successful Executed")
+            fmt.Println("Request Successful Executed")
             var s string
             for res.Next() {
                 if err := res.Scan(&s); err != nil {
                     log.Fatal(err)
                 }
-                ////fmt.Println(c)
+                ///fmt.Println(c)
                 prov_liste = append(prov_liste, s)
 
             }
             done = true
         }
         ////fmt.Println(count)
+        fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(prov_liste)
         return
@@ -2497,4 +2440,44 @@ func main() {
     key := "privkey.pem"
     // run server on port "9000"
     log.Fatal(s.ListenAndServeTLS(cert, key))
+}
+
+func logOutput() func() {
+    logfile := `logfile`
+    // open file read/write | create if not exist | clear file at open if exists
+    f, _ := os.OpenFile(logfile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+
+    // save existing stdout | MultiWriter writes to saved stdout and file
+    out := os.Stdout
+    mw := io.MultiWriter(out, f)
+
+    // get pipe reader and writer | writes to pipe writer come out pipe reader
+    r, w, _ := os.Pipe()
+
+    // replace stdout,stderr with pipe writer | all writes to stdout, stderr will go through pipe instead (fmt.print, log)
+    os.Stdout = w
+    os.Stderr = w
+
+    // writes with log.Print should also write to mw
+    log.SetOutput(mw)
+
+    //create channel to control exit | will block until all copies are finished
+    exit := make(chan bool)
+
+    go func() {
+        // copy all reads from pipe to multiwriter, which writes to stdout and file
+        _, _ = io.Copy(mw, r)
+        // when r or w is closed copy will finish and true will be sent to channel
+        exit <- true
+    }()
+
+    // function to be deferred in main until program exits
+    return func() {
+        // close writer then block on exit channel | this will let mw finish writing before the program exits
+        _ = w.Close()
+        <-exit
+        // close file after all writes have finished
+        _ = f.Close()
+    }
+
 }
