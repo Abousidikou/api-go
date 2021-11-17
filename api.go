@@ -1089,7 +1089,7 @@ func main() {
         ////fmt.Println("Successful Connected")
 
         to_send := make(map[string]interface{})
-        ids := make(map[string]interface{})
+        //ids := make(map[string]interface{})
         var date []string
         var D_AvgBW []float64
         var D_MinBW []float64
@@ -1110,8 +1110,8 @@ func main() {
         for ind := range datelisteDeb {
             //fmt.Println(datelisteDeb[ind], datelisteFin[ind])
             date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
-            var d_ids []int
-            var u_ids []int
+            //var d_ids []int
+            //var u_ids []int
             done := false
             if !done {
                 sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
