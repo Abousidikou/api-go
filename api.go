@@ -1868,6 +1868,8 @@ func main() {
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         //fmt.Println(st, en)
 
+        _, monthDiff, dayDiff := TimeDiff(st, en)
+
         // faire la liste des date
         var datelisteDeb, datelisteFin []string
         if dayDiff <= 35 {
@@ -1925,13 +1927,13 @@ func main() {
                     }
 
                     s, _ := strconv.ParseFloat(string(m.Avg), 10)
-                    D_Avg = append(D_AvgBW, s)
+                    D_Avg = append(D_Avg, s)
                     s, _ = strconv.ParseFloat(string(m.Min), 10)
-                    D_Min = append(D_MinBW, s)
+                    D_Min = append(D_Min, s)
                     s, _ = strconv.ParseFloat(string(m.Max), 10)
-                    D_Max = append(D_MaxBW, s)
+                    D_Max = append(D_Max, s)
                     s, _ = strconv.ParseFloat(string(m.Median), 10)
-                    D_Median = append(D_MedianBW, s)
+                    D_Median = append(D_Median, s)
                 }
                 done = true
             }
@@ -1952,13 +1954,13 @@ func main() {
                     }
 
                     s, _ := strconv.ParseFloat(string(m.Avg), 10)
-                    U_Avg = append(U_AvgBW, s)
+                    U_Avg = append(U_Avg, s)
                     s, _ = strconv.ParseFloat(string(m.Min), 10)
-                    U_Min = append(U_MinBW, s)
+                    U_Min = append(U_Min, s)
                     s, _ = strconv.ParseFloat(string(m.Max), 10)
-                    U_Max = append(U_MaxBW, s)
+                    U_Max = append(U_Max, s)
                     s, _ = strconv.ParseFloat(string(m.Median), 10)
-                    U_Median = append(U_MedianBW, s)
+                    U_Median = append(U_Median, s)
                 }
                 done = false
             }
@@ -2004,6 +2006,9 @@ func main() {
         st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
         en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
         //fmt.Println(st, en)
+
+        _, monthDiff, dayDiff := TimeDiff(st, en)
+
         // faire la liste des date
         var datelisteDeb, datelisteFin []string
         if dayDiff <= 35 {
@@ -2061,13 +2066,13 @@ func main() {
                     }
 
                     s, _ := strconv.ParseFloat(string(m.Avg), 10)
-                    D_Avg = append(D_AvgBW, s)
+                    D_Avg = append(D_Avg, s)
                     s, _ = strconv.ParseFloat(string(m.Min), 10)
-                    D_Min = append(D_MinBW, s)
+                    D_Min = append(D_Min, s)
                     s, _ = strconv.ParseFloat(string(m.Max), 10)
-                    D_Max = append(D_MaxBW, s)
+                    D_Max = append(D_Max, s)
                     s, _ = strconv.ParseFloat(string(m.Median), 10)
-                    D_Median = append(D_MedianBW, s)
+                    D_Median = append(D_Median, s)
                 }
                 done = true
             }
@@ -2088,13 +2093,13 @@ func main() {
                     }
 
                     s, _ := strconv.ParseFloat(string(m.Avg), 10)
-                    U_Avg = append(U_AvgBW, s)
+                    U_Avg = append(U_Avg, s)
                     s, _ = strconv.ParseFloat(string(m.Min), 10)
-                    U_Min = append(U_MinBW, s)
+                    U_Min = append(U_Min, s)
                     s, _ = strconv.ParseFloat(string(m.Max), 10)
-                    U_Max = append(U_MaxBW, s)
+                    U_Max = append(U_Max, s)
                     s, _ = strconv.ParseFloat(string(m.Median), 10)
-                    U_Median = append(U_MedianBW, s)
+                    U_Median = append(U_Median, s)
                 }
                 done = false
             }
