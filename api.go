@@ -228,7 +228,11 @@ func getMonthListe(st, en string, entierType int) ([]string, []string) {
 
     }
     //fmt.Println(dateliste)
-    return datelistedebut, datelistefin
+    if entierType == 0 {
+        return datelistedebut, datelistedebut
+    } else {
+        return datelistedebut, datelistefin
+    }
 }
 
 func rangeDate(dat []string) []string {
@@ -946,19 +950,277 @@ func main() {
         return
     })
 
+    router.HandleFunc("/percentageByProvider/{provider}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        var down, up []int
+        count := make(map[string]interface{})
+        var vars = mux.Vars(r)
+        provider_name := vars["provider"]
+        category := vars["type"]
+        category_Name := vars["type_id"]
+        category_id := 0
+        if category == "Country" {
+            category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
+        } else if category == "Region" {
+            category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
+        } else if category == "City" {
+            category_id = getId("City_id", "City", "City_Name", category_Name)[0]
+        }
+        prov_ID := getId("Provider_id", "Provider", "Provider_AS_Name", provider_name)[0]
+        fmt.Println("Prov ID", prov_ID)
+        startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
+        endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
+        //fmt.Println(startDate, endDate)
+
+        /*st := strings.Join(startDate, "-")
+          en := strings.Join(endDate, "-")*/
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+
+        db, err := sql.Open("mysql", credential)
+        defer db.Close()
+
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        ////fmt.Println("Successful Connected")
+
+        done := false
+        if !done {
+            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_Date between '" + st + "' and '" + en + "'"
+            //fmt.Println(sql_statement)
+            res, err := db.Query(sql_statement)
+            defer res.Close()
+
+            if err != nil {
+                log.Fatal(err)
+            }
+            ////fmt.Println("Request Successful Executed")
+            var c int
+            for res.Next() {
+                if err := res.Scan(&c); err != nil {
+                    log.Fatal(err)
+                }
+                ////fmt.Println(c)
+                down = append(down, c)
+            }
+            done = true
+        }
+        if done {
+            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "'  and Test_Date between '" + st + "' and '" + en + "'"
+            //fmt.Println(sql_statement)
+            res, err := db.Query(sql_statement)
+            defer res.Close()
+
+            if err != nil {
+                log.Fatal(err)
+            }
+            ////fmt.Println("Request Successful Executed")
+            var c int
+
+            for res.Next() {
+                if err := res.Scan(&c); err != nil {
+                    log.Fatal(err)
+                }
+                ////fmt.Println(c)
+                up = append(up, c)
+            }
+            done = false
+        }
+
+        ////fmt.Println(down, up)
+        count["Download"] = down
+        count["len_Down"] = len(down)
+        count["Upload"] = up
+        count["len_Up"] = len(up)
+        ////fmt.Println(count)
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        json.NewEncoder(w).Encode(count)
+        return
+    })
+
     //Change
     router.HandleFunc("/medianByDay/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
         var vars = mux.Vars(r)
-        /*category := vars["type"]
-          category_Name := vars["type_id"]
-          category_id := 0
-          if category == "Country" {
-              category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
-          } else if category == "Region" {
-              category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
-          } else if category == "City" {
-              category_id = getId("City_id", "City", "City_Name", category_Name)[0]
-          }*/
+        category := vars["type"]
+        category_Name := vars["type_id"]
+        category_id := 0
+        if category == "Country" {
+            category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
+        } else if category == "Region" {
+            category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
+        } else if category == "City" {
+            category_id = getId("City_id", "City", "City_Name", category_Name)[0]
+        }
+        //fmt.Println(category, category_id)
+        startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
+        endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
+        //fmt.Println(startDate, endDate)
+
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+        //fmt.Println(st, en)
+        _, monthDiff, dayDiff := TimeDiff(st, en)
+        //fmt.Println(yearDiff, monthDiff, dayDiff)
+
+        // faire la liste des date
+        var datelisteDeb, datelisteFin []string
+        if dayDiff <= 35 {
+            datelisteDeb, datelisteFin = getMonthListe(st, en, 0)
+        } else if dayDiff > 35 && monthDiff != 0 && monthDiff <= 24 {
+            datelisteDeb, datelisteFin = getMonthListe(st, en, 1)
+        } else if monthDiff > 24 && monthDiff <= 48 {
+            datelisteDeb, datelisteFin = getMonthListe(st, en, 3)
+        } else if monthDiff > 48 && monthDiff <= 60 {
+            datelisteDeb, datelisteFin = getMonthListe(st, en, 6)
+        } else if monthDiff > 60 {
+            datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
+        }
+
+        fmt.Println(datelisteDeb, datelisteFin)
+        //Base de données
+        db, err := sql.Open("mysql", credential)
+        defer db.Close()
+
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        ////fmt.Println("Successful Connected")
+
+        to_send := make(map[string]interface{})
+        ids := make(map[string]interface{})
+        var date []string
+        var D_AvgBW []int
+        var D_MinBW []int
+        var D_MaxBW []int
+        var D_MedianBW []int
+        var D_AvgMinRTT []int
+        var D_MinMinRTT []int
+        var D_MaxMinRTT []int
+        var D_MedianMinRTT []int
+        var U_AvgBW []int
+        var U_MinBW []int
+        var U_MaxBW []int
+        var U_MedianBW []int
+        var U_AvgMinRTT []int
+        var U_MinMinRTT []int
+        var U_MaxMinRTT []int
+        var U_MedianMinRTT []int
+        for ind := range datelisteDeb {
+            //fmt.Println(datelisteDeb[ind], datelisteFin[ind])
+            date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
+            var d_ids []int
+            var u_ids []int
+            done := false
+            if !done {
+                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + atelisteFin[ind] + "')"
+                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
+                //fmt.Println(sql_statement)
+                res, err := db.Query(sql_statement)
+                defer res.Close()
+
+                if err != nil {
+                    log.Fatal(err)
+                }
+                //fmt.Println("Request Successful Executed")
+                var m avgMedianByDay
+                for res.Next() {
+                    if err := res.Scan(&m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
+                        log.Fatal(err)
+                    }
+
+                    s, _ := strconv.ParseFloat(string(m.DayStat_AvgBW), 10)
+                    D_AvgBW = append(D_AvgBW, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MinBW), 10)
+                    D_MinBW = append(D_MinBW, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MaxBW), 10)
+                    D_MaxBW = append(D_MaxBW, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MedianBW), 10)
+                    D_MedianBW = append(D_MedianBW, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_AvgMinRTT), 10)
+                    D_AvgMinRTT = append(D_AvgMinRTT, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MinMinRTT), 10)
+                    D_MinMinRTT = append(D_MinMinRTT, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MaxMinRTT), 10)
+                    D_MaxMinRTT = append(D_MaxMinRTT, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MedianMinRTT), 10)
+                    D_MedianMinRTT = append(D_MedianMinRTT, s)
+                }
+                done = true
+            }
+            if done {
+                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + atelisteFin[ind] + "')"
+                //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
+                //fmt.Println(sql_statement)
+                res, err := db.Query(sql_statement)
+                defer res.Close()
+
+                if err != nil {
+                    log.Fatal(err)
+                }
+                var m avgMedianByDay
+                for res.Next() {
+                    if err := res.Scan(&m.DayStat_AvgBW, &m.DayStat_MinBW, &m.DayStat_MaxBW, &m.DayStat_MedianBW, &m.DayStat_AvgMinRTT, &m.DayStat_MinMinRTT, &m.DayStat_MaxMinRTT, &m.DayStat_MedianMinRTT); err != nil {
+                        log.Fatal(err)
+                    }
+                    //fmt.Println(string(m.DayStat_AvgBW))
+                    s, _ := strconv.ParseFloat(string(m.DayStat_AvgBW), 10)
+                    U_AvgBW = append(U_AvgBW, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MinBW), 10)
+                    U_MinBW = append(U_MinBW, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MaxBW), 10)
+                    U_MaxBW = append(U_MaxBW, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MedianBW), 10)
+                    U_MedianBW = append(U_MedianBW, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_AvgMinRTT), 10)
+                    U_AvgMinRTT = append(U_AvgMinRTT, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MinMinRTT), 10)
+                    U_MinMinRTT = append(U_MinMinRTT, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MaxMinRTT), 10)
+                    U_MaxMinRTT = append(U_MaxMinRTT, s)
+                    s, _ = strconv.ParseFloat(string(m.DayStat_MedianMinRTT), 10)
+                    U_MedianMinRTT = append(U_MedianMinRTT)
+                }
+                done = false
+            }
+        }
+        to_send["D_Date"] = date
+        to_send["D_AvgBW"] = D_AvgBW
+        to_send["D_MinBW"] = D_MinBW
+        to_send["D_MaxBW"] = D_MaxBW
+        to_send["D_MedianBW"] = D_MedianBW
+        to_send["D_AvgMinRTT"] = D_AvgMinRTT
+        to_send["D_MinMinRTT"] = D_MinMinRTT
+        to_send["D_MaxMinRTT"] = D_MaxMinRTT
+        to_send["D_MedianMinRTT"] = D_MedianMinRTT
+        to_send["U_AvgBW"] = U_AvgBW
+        to_send["U_MinBW"] = U_MinBW
+        to_send["U_MaxBW"] = U_MaxBW
+        to_send["U_MedianBW"] = U_MedianBW
+        to_send["U_AvgMinRTT"] = U_AvgMinRTT
+        to_send["U_MinMinRTT"] = U_MinMinRTT
+        to_send["U_MaxMinRTT"] = U_MaxMinRTT
+        to_send["U_MedianMinRTT"] = U_MedianMinRTT
+
+        //fmt.Println("to_send:", to_send)
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        json.NewEncoder(w).Encode(to_send)
+        return
+    })
+
+    /*router.HandleFunc("/medianByProvider/{provider}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        var vars = mux.Vars(r)
+        category := vars["type"]
+        category_Name := vars["type_id"]
+        category_id := 0
+        if category == "Country" {
+            category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
+        } else if category == "Region" {
+            category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
+        } else if category == "City" {
+            category_id = getId("City_id", "City", "City_Name", category_Name)[0]
+        }
         //fmt.Println(category, category_id)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
         endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
@@ -1083,7 +1345,7 @@ func main() {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 1)
             } else if monthDiff > 24 && monthDiff <= 48 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 3)
-            } else if monthDiff > 24 && monthDiff <= 60 {
+            } else if monthDiff > 48 && monthDiff <= 60 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 6)
             } else if monthDiff > 60 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
@@ -1207,7 +1469,7 @@ func main() {
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         return
-    })
+    })*/
 
     // Return the highest AvgBW of the Day
     router.HandleFunc("/bandByDaySlice/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
@@ -1417,7 +1679,7 @@ func main() {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 1)
             } else if monthDiff > 24 && monthDiff <= 48 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 3)
-            } else if monthDiff > 24 && monthDiff <= 60 {
+            } else if monthDiff > 48 && monthDiff <= 60 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 6)
             } else if monthDiff > 60 {
                 datelisteDeb, datelisteFin = getMonthListe(st, en, 12)
