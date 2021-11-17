@@ -967,6 +967,7 @@ func main() {
         } else if category == "City" {
             category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
+        //fmt.Println(category_id, category)
         prov_ID := getId("Provider_id", "Provider", "Provider_AS_Name", provider_name)[0]
         fmt.Println("Prov ID", prov_ID)
         startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
@@ -990,7 +991,7 @@ func main() {
         done := false
         if !done {
             sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_Date between '" + st + "' and '" + en + "'"
-            fmt.Println(sql_statement)
+            //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -1010,7 +1011,7 @@ func main() {
         }
         if done {
             sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "'  and Test_Date between '" + st + "' and '" + en + "'"
-            fmt.Println(sql_statement)
+            //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
 
@@ -2388,68 +2389,64 @@ func main() {
         return
     })
 
-    router.HandleFunc("/Sample/{typeofparam}/{param}", func(w http.ResponseWriter, r *http.Request) {
-        vars := mux.Vars(r)
-        typeOfParam := vars["typeofparam"]
-        param := vars["param"]
-        sql_statement := ""
-        count := make(map[string]int)
-        if typeOfParam == "country" {
-            country_id := getId("Country_id", "Country", "Country_Name", param)
-            sql_statement = "SELECT count(*) FROM Tests where Test_Country_id=" + strconv.Itoa(country_id[0])
-        } else if typeOfParam == "city" {
-            city_id := getId("City_id", "City", "City_Name", param)
-            sql_statement = "SELECT count(*) FROM Tests where Test_City_id=" + strconv.Itoa(city_id[0])
-        } else if typeOfParam == "region" {
-            region_id := getId("Region_id", "Region", "Region_Name", param)
-            sql_statement = "SELECT count(*) FROM Tests where Test_Region_id=" + strconv.Itoa(region_id[0])
-        } else if typeOfParam == "downCountry" {
-            country_id := getId("Country_id", "Country", "Country_Name", param)
-            sql_statement = "SELECT count(*) FROM Tests where Test_Country_id=" + strconv.Itoa(country_id[0]) + " and Test_Type='Download'"
-        } else if typeOfParam == "upCountry" {
-            country_id := getId("Country_id", "Country", "Country_Name", param)
-            sql_statement = "SELECT count(*) FROM Tests where Test_Country_id=" + strconv.Itoa(country_id[0]) + " and Test_Type='Upload'"
-        } else if typeOfParam == "downRegion" {
-            region_id := getId("Region_id", "Region", "Region_Name", param)
-            sql_statement = "SELECT count(*) FROM Tests where Test_Region_id=" + strconv.Itoa(region_id[0]) + " and Test_Type='Download'"
-        } else if typeOfParam == "upRegion" {
-            region_id := getId("Region_id", "Region", "Region_Name", param)
-            sql_statement = "SELECT count(*) FROM Tests where Test_Region_id=" + strconv.Itoa(region_id[0]) + " and Test_Type='Upload'"
-        } else if typeOfParam == "downCity" {
-            city_id := getId("City_id", "City", "City_Name", param)
-            sql_statement = "SELECT count(*) FROM Tests where Test_City_id=" + strconv.Itoa(city_id[0]) + " and Test_Type='Download'"
-        } else if typeOfParam == "upCity" {
-            city_id := getId("City_id", "City", "City_Name", param)
-            sql_statement = "SELECT count(*) FROM Tests where Test_City_id=" + strconv.Itoa(city_id[0]) + " and Test_Type='Upload'"
+    router.HandleFunc("/providersListe/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+        var vars = mux.Vars(r)
+        category := vars["type"]
+        category_Name := vars["type_id"]
+        category_id := 0
+        if category == "Country" {
+            category_id = getId("Country_id", "Country", "Country_Name", category_Name)[0]
+        } else if category == "Region" {
+            category_id = getId("Region_id", "Region", "Region_Name", category_Name)[0]
+        } else if category == "City" {
+            category_id = getId("City_id", "City", "City_Name", category_Name)[0]
         }
-        //fmt.Println(sql_statement)
-        //Connect to database
+        //fmt.Println(category, category_id)
+        startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
+        endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
+        //fmt.Println(startDate, endDate)
+
+        /*st := strings.Join(startDate, "-")
+          en := strings.Join(endDate, "-")*/
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
         if err != nil {
             log.Fatal(err)
         }
+
         ////fmt.Println("Successful Connected")
+        var prov_liste []string
+        done := false
+        if !done {
+            sql_statement := "select Provider_AS_Name from Provider where Provider_id in (select Test_Provider_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "')"
+            //fmt.Println(sql_statement) "select Provider_AS_Name,Provider_id from Provider where Provider_id in (select Test_Provider_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '"+st+"' and '"+en+"')"
+            res, err := db.Query(sql_statement)
+            defer res.Close()
 
-        res, err := db.Query(sql_statement)
-        defer res.Close()
-
-        var c int
-
-        for res.Next() {
-            if err := res.Scan(&c); err != nil {
+            if err != nil {
                 log.Fatal(err)
             }
-            count["Sample"] = c
-        }
+            ////fmt.Println("Request Successful Executed")
+            var s string
+            for res.Next() {
+                if err := res.Scan(&s); err != nil {
+                    log.Fatal(err)
+                }
+                ////fmt.Println(c)
+                down = append(down, c)
 
+            }
+            done = true
+        }
         ////fmt.Println(count)
         w.Header().Set("Access-Control-Allow-Origin", "*")
-        json.NewEncoder(w).Encode(count)
+        json.NewEncoder(w).Encode(prov_liste)
         return
     })
-
     // Lauching server
     //log.Fatal(http.ListenAndServe(":4445", router))
 
