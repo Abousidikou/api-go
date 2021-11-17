@@ -1209,7 +1209,7 @@ func main() {
         return
     })
 
-    router.HandleFunc("/medianByProvider/{provider}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    /*router.HandleFunc("/medianByProvider/{provider}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
         var vars = mux.Vars(r)
         category := vars["type"]
         category_Name := vars["type_id"]
@@ -1469,7 +1469,7 @@ func main() {
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(to_send)
         return
-    })
+    })*/
 
     // Return the highest AvgBW of the Day
     router.HandleFunc("/bandByDaySlice/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
