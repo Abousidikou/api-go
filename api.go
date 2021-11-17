@@ -2437,7 +2437,7 @@ func main() {
                     log.Fatal(err)
                 }
                 ////fmt.Println(c)
-                down = append(down, c)
+                prov_liste = append(prov_liste, s)
 
             }
             done = true
