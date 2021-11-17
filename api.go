@@ -706,14 +706,14 @@ func main() {
         urlCountry := vars["country"]
         //fmt.Println("Country: " + urlCountry)
         //Get Country Id
-        country_id := getId("Country_id", "Country", "Country_Name", urlCountry)
+        country_id := getId("Country_id", "Country", "Country_Name", urlCountry)[0]
         //fmt.Println(country_id)
         // Get Rgions Ids
-        region_ids := getId("Test_Region_id", "Tests", "Test_Country_id", strconv.Itoa(country_id[0]))
+        //region_ids := getId("Test_Region_id", "Tests", "Test_Country_id", strconv.Itoa(country_id))
         //fmt.Println(region_ids)
         // regions map
-        var row Location
-        unordered_region := make(map[int]string)
+        //var row Location
+        //unordered_region := make(map[int]string)
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -722,39 +722,57 @@ func main() {
         }
 
         ////fmt.Println("Successful Connected")
-        i := 0
-        for _, id := range region_ids {
-            //fmt.Println("region_id: ", id)
-            res, err := db.Query("SELECT Region_id,Region_Name FROM Region where Region_id=" + strconv.Itoa(id))
-            defer res.Close()
+        /*i := 0
+          for _, id := range region_ids {
+              //fmt.Println("region_id: ", id)
+              res, err := db.Query("SELECT Region_Name FROM Region where Region_id in (select Test_Region_id from Tests where Test_Country_id='" + strconv.Itoa(country_id) + "')")
+              defer res.Close()
+              if err != nil {
+                  log.Fatal(err)
+              }
+              ////fmt.Println("Request executed well")
+              for res.Next() {
+
+                  err := res.Scan(&row.Id, &row.Name)
+
+                  if err != nil {
+                      log.Fatal(err)
+                  }
+                  unordered_region[i] = row.Name
+                  i++
+              }
+          }
+          var region []string
+          for _, val := range unordered_region {
+              found := FindString(region, val)
+              if !found {
+                  region = append(region, val)
+              }
+          }
+          region = unicString(region)
+          //fmt.Println(region)
+          region = rangeString(region)
+          //fmt.Println(region)*/
+        var regions []string
+        res, err := db.Query("SELECT Region_Name FROM Region where Region_id in (select Test_Region_id from Tests where Test_Country_id='" + strconv.Itoa(country_id) + "')")
+        defer res.Close()
+        if err != nil {
+            log.Fatal(err)
+        }
+        ////fmt.Println("Request executed well")
+        var s string
+        for res.Next() {
+            err := res.Scan(&s)
+
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request executed well")
-            for res.Next() {
+            regions = append(regions, s)
 
-                err := res.Scan(&row.Id, &row.Name)
+        }
 
-                if err != nil {
-                    log.Fatal(err)
-                }
-                unordered_region[i] = row.Name
-                i++
-            }
-        }
-        var region []string
-        for _, val := range unordered_region {
-            found := FindString(region, val)
-            if !found {
-                region = append(region, val)
-            }
-        }
-        region = unicString(region)
-        //fmt.Println(region)
-        region = rangeString(region)
-        //fmt.Println(region)
         w.Header().Set("Access-Control-Allow-Origin", "*")
-        json.NewEncoder(w).Encode(region)
+        json.NewEncoder(w).Encode(regions)
         return
     })
     router.HandleFunc("/city/{region}", func(w http.ResponseWriter, r *http.Request) {
@@ -762,12 +780,12 @@ func main() {
         urlregion := vars["region"]
         //fmt.Println("Region: " + urlregion)
         //Get Region Id
-        region_id := getId("Region_id", "Region", "Region_Name", urlregion)
+        region_id := getId("Region_id", "Region", "Region_Name", urlregion)[0]
         //fmt.Println("Region_id: " + urlregion)
         // Get City ids
-        city_ids := getId("Test_City_id", "Tests", "Test_Region_id", strconv.Itoa(region_id[0]))
-        var row Location
-        cities := make(map[int]string)
+        //city_ids := getId("Test_City_id", "Tests", "Test_Region_id", strconv.Itoa(region_id[0]))
+        //var row Location
+        //cities := make(map[int]string)
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -775,26 +793,44 @@ func main() {
             log.Fatal(err)
         }
 
-        ////fmt.Println("Successful Connected")
-        for _, id := range city_ids {
-            ////fmt.Println("region_id: ", id)
-            res, err := db.Query("SELECT City_id,City_Name FROM City where City_id=" + strconv.Itoa(id))
-            defer res.Close()
+        /* ////fmt.Println("Successful Connected")
+           for _, id := range city_ids {
+               ////fmt.Println("region_id: ", id)
+               res, err := db.Query("SELECT City_id,City_Name FROM City where City_id=" + strconv.Itoa(id))
+               defer res.Close()
+               if err != nil {
+                   log.Fatal(err)
+               }
+               ////fmt.Println("Request executed well")
+               i := 0
+               for res.Next() {
+
+                   err := res.Scan(&row.Id, &row.Name)
+
+                   if err != nil {
+                       log.Fatal(err)
+                   }
+                   cities[i] = row.Name
+                   i++
+               }
+           }*/
+        var cities []string
+        ////fmt.Println("region_id: ", id) strconv.Itoa(id)
+        res, err := db.Query("SELECT City_Name FROM City where City_id in (select Test_City_id from Tests where Test_Region_id='" + strconv.Itoa(region_id) + "')")
+        defer res.Close()
+        if err != nil {
+            log.Fatal(err)
+        }
+        ////fmt.Println("Request executed well")
+        var s string
+        for res.Next() {
+
+            err := res.Scan(&s)
+
             if err != nil {
                 log.Fatal(err)
             }
-            ////fmt.Println("Request executed well")
-            i := 0
-            for res.Next() {
-
-                err := res.Scan(&row.Id, &row.Name)
-
-                if err != nil {
-                    log.Fatal(err)
-                }
-                cities[i] = row.Name
-                i++
-            }
+            cities = append(cities, s)
         }
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(cities)
