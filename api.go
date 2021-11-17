@@ -2052,7 +2052,7 @@ func main() {
             if !done {
                 sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
                 //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
@@ -2080,7 +2080,7 @@ func main() {
             if done {
                 sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
                 //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
-                //fmt.Println(sql_statement)
+                fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
 
