@@ -1091,22 +1091,22 @@ func main() {
         to_send := make(map[string]interface{})
         ids := make(map[string]interface{})
         var date []string
-        var D_AvgBW []int
-        var D_MinBW []int
-        var D_MaxBW []int
-        var D_MedianBW []int
-        var D_AvgMinRTT []int
-        var D_MinMinRTT []int
-        var D_MaxMinRTT []int
-        var D_MedianMinRTT []int
-        var U_AvgBW []int
-        var U_MinBW []int
-        var U_MaxBW []int
-        var U_MedianBW []int
-        var U_AvgMinRTT []int
-        var U_MinMinRTT []int
-        var U_MaxMinRTT []int
-        var U_MedianMinRTT []int
+        var D_AvgBW []float64
+        var D_MinBW []float64
+        var D_MaxBW []float64
+        var D_MedianBW []float64
+        var D_AvgMinRTT []float64
+        var D_MinMinRTT []float64
+        var D_MaxMinRTT []float64
+        var D_MedianMinRTT []float64
+        var U_AvgBW []float64
+        var U_MinBW []float64
+        var U_MaxBW []float64
+        var U_MedianBW []float64
+        var U_AvgMinRTT []float64
+        var U_MinMinRTT []float64
+        var U_MaxMinRTT []float64
+        var U_MedianMinRTT []float64
         for ind := range datelisteDeb {
             //fmt.Println(datelisteDeb[ind], datelisteFin[ind])
             date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
