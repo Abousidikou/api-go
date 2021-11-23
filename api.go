@@ -2483,7 +2483,7 @@ func main() {
         ////fmt.Println(count)
         fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
-        json.NewEncoder(w).Encode(prov_liste)
+        json.NewEncoder(w).Encode(ser_liste)
         return
     })
     // Lauching server
