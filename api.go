@@ -19,6 +19,7 @@ import (
 const monthInYear = 12
 const dayInMonth = 31
 const credential = "root:<password>@tcp(127.0.0.1:3306)/monitorDB"
+const dataCredential = "root:<password>@tcp(127.0.0.1:3306)/monitorData"
 
 type Location struct {
     Id   int
@@ -666,8 +667,10 @@ func main() {
     fn := logOutput()
     defer fn()
     router := mux.NewRouter()
-    router.HandleFunc("/country", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/country/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Countries Retriving...")
+        vars := mux.Vars(r)
+        serIp := vars["serIp"]
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -676,7 +679,7 @@ func main() {
         }
         fmt.Println("Successful Connected")
         var countries []string
-        sql_statement := "select Country_name from Country where Country_id in (select Test_Country_id from Tests)"
+        sql_statement := "select Country_name from Country where Country_id in (select Test_Country_id from Tests where Test_ServerIP='" + serIp + "')"
         fmt.Println(sql_statement)
         res, err := db.Query(sql_statement)
         defer res.Close()
@@ -700,10 +703,11 @@ func main() {
         return
     })
 
-    router.HandleFunc("/region/{country}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/region/{country}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Regions Retriving...")
         vars := mux.Vars(r)
         urlCountry := vars["country"]
+        serIp := vars["serIp"]
         fmt.Println("From Country: " + urlCountry)
         country_id := getId("Country_id", "Country", "Country_Name", urlCountry)[0]
         fmt.Println(" Country id: " + strconv.Itoa(country_id))
@@ -716,7 +720,7 @@ func main() {
 
         fmt.Println("Successful Connected")
         var regions []string
-        sql_statement := "SELECT Region_Name FROM Region where Region_id in (select Test_Region_id from Tests where Test_Country_id='" + strconv.Itoa(country_id) + "')"
+        sql_statement := "SELECT Region_Name FROM Region where Region_id in (select Test_Region_id from Tests where Test_Country_id='" + strconv.Itoa(country_id) + "' and Test_ServerIP='" + serIp + "')"
         fmt.Println(sql_statement)
         res, err := db.Query(sql_statement)
         defer res.Close()
@@ -739,10 +743,12 @@ func main() {
         json.NewEncoder(w).Encode(regions)
         return
     })
-    router.HandleFunc("/city/{region}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/city/{region}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Cities Retriving...")
         vars := mux.Vars(r)
         urlregion := vars["region"]
+        serIp := vars["serIp"]
+        fmt.Println(serIp)
         fmt.Println("Region: " + urlregion)
         //Get Region Id
         region_id := getId("Region_id", "Region", "Region_Name", urlregion)[0]
@@ -758,7 +764,7 @@ func main() {
         fmt.Println("Successful Connected")
 
         var cities []string
-        sql_statement := "SELECT City_Name FROM City where City_id in (select Test_City_id from Tests where Test_Region_id='" + strconv.Itoa(region_id) + "')"
+        sql_statement := "SELECT City_Name FROM City where City_id in (select Test_City_id from Tests where Test_Region_id='" + strconv.Itoa(region_id) + "' and Test_ServerIP='" + serIp + "')"
         fmt.Println(sql_statement)
         res, err := db.Query(sql_statement)
         defer res.Close()
@@ -783,11 +789,12 @@ func main() {
         return
     })
 
-    router.HandleFunc("/Sample/{typeofparam}/{param}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/Sample/{typeofparam}/{param}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Sample")
         vars := mux.Vars(r)
         typeOfParam := vars["typeofparam"]
         param := vars["param"]
+        serIp := vars["serIp"]
         sql_statement := ""
         count := make(map[string]int)
         if typeOfParam == "country" {
@@ -847,11 +854,12 @@ func main() {
     })
 
     //Change
-    router.HandleFunc("/percentageByService/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/percentageByService/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Percentage By Service")
         var down, up []int
         count := make(map[string]interface{})
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         category := vars["type"]
         category_Name := vars["type_id"]
         category_id := 0
@@ -881,7 +889,7 @@ func main() {
 
         done := false
         if !done {
-            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
+            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
             fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -901,7 +909,7 @@ func main() {
             done = true
         }
         if done {
-            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
+            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
             fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -933,11 +941,12 @@ func main() {
         return
     })
 
-    router.HandleFunc("/percentageByProvider/{provider}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/percentageByProvider/{provider}/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Percentage By Service for Providers")
         var down, up []int
         count := make(map[string]interface{})
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         provider_name := vars["provider"]
         category := vars["type"]
         category_Name := vars["type_id"]
@@ -972,7 +981,7 @@ func main() {
 
         done := false
         if !done {
-            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_Date between '" + st + "' and '" + en + "'"
+            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
             fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -992,7 +1001,7 @@ func main() {
             done = true
         }
         if done {
-            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "'  and Test_Date between '" + st + "' and '" + en + "'"
+            sql_statement := "SELECT Test_Service_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "'  and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
             fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -1025,9 +1034,10 @@ func main() {
     })
 
     //Change
-    router.HandleFunc("/medianByDay/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/medianByDay/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Bandwidth..")
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         category := vars["type"]
         category_Name := vars["type_id"]
         category_id := 0
@@ -1097,7 +1107,7 @@ func main() {
             date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
             done := false
             if !done {
-                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
+                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "' and Test_ServerIP='" + serIp + "')"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -1132,7 +1142,7 @@ func main() {
                 done = true
             }
             if done {
-                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
+                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "' and Test_ServerIP='" + serIp + "')"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -1190,9 +1200,10 @@ func main() {
     })
 
     //Change
-    router.HandleFunc("/medianByProvider/{provider}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/medianByProvider/{provider}/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Bandwidth For Providers")
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         provider_name := vars["provider"]
         prov_ID := getId("Provider_id", "Provider", "Provider_AS_Name", provider_name)[0]
         fmt.Println("Prov ID", prov_ID)
@@ -1265,7 +1276,7 @@ func main() {
             date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
             done := false
             if !done {
-                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
+                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "' and Test_ServerIP='" + serIp + "')"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -1300,7 +1311,7 @@ func main() {
                 done = true
             }
             if done {
-                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
+                sql_statement := "SELECT AVG(AvgBW),AVG(MinBw),AVG(MaxBW),AVG(MedianBW),AVG(AvgMinRTT),AVG(MinMinRTT),AVG(MaxMinRTT),AVG(MedianMinRTT) from BBRInfo where BBRInfo_id in (SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "' and Test_ServerIP='" + serIp + "')"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -1359,9 +1370,10 @@ func main() {
     })
 
     // Return the highest AvgBW of the Day
-    router.HandleFunc("/bandByDaySlice/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/bandByDaySlice/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Bandwidth by day slice")
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         category := vars["type"]
         category_Name := vars["type_id"]
         category_id := 0
@@ -1396,7 +1408,7 @@ func main() {
         up := make(map[string][][]int)
         done := false
         if !done {
-            sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
+            sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
             fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -1437,7 +1449,7 @@ func main() {
         }
         //fmt.Println("downDay3:", down)
         if done {
-            sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "'"
+            sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
             fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -1591,9 +1603,10 @@ func main() {
         return
     })
 
-    router.HandleFunc("/bandByDaySliceProvider/{provider}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/bandByDaySliceProvider/{provider}/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Bandwidth by DaySlice for Providers")
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         provider_name := vars["provider"]
         prov_ID := getId("Provider_id", "Provider", "Provider_AS_Name", provider_name)[0]
         fmt.Println("Prov ID", prov_ID)
@@ -1630,7 +1643,7 @@ func main() {
         up := make(map[string][][]int)
         done := false
         if !done {
-            sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "'  and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "'"
+            sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "'  and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
             //fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -1671,7 +1684,7 @@ func main() {
         }
         //fmt.Println("downDay3:", down)
         if done {
-            sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_Date between '" + st + "' and '" + en + "'"
+            sql_statement := "SELECT Test_Date,Test_BBRInfo_id,Test_DaySlice_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
             fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -1825,9 +1838,10 @@ func main() {
         return
     })
 
-    router.HandleFunc("/tcpinfo/{param}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/tcpinfo/{param}/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("TCP Infos")
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         param := vars["param"]
         category := vars["type"]
         category_Name := vars["type_id"]
@@ -1888,7 +1902,7 @@ func main() {
             date = append(date, getDateString(datelisteDeb[ind], datelisteFin[ind]))
             done := false
             if !done {
-                sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
+                sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "' and Test_ServerIP='" + serIp + "')"
                 //sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "'"
                 //fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
@@ -1916,7 +1930,7 @@ func main() {
                 done = true
             }
             if done {
-                sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
+                sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "' and Test_ServerIP='" + serIp + "')"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -1960,9 +1974,10 @@ func main() {
         return
     })
 
-    router.HandleFunc("/tcpinfoProvider/{provider}/{param}/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/tcpinfoProvider/{provider}/{param}/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("TCP Infos for Providers")
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         provider_name := vars["provider"]
         prov_ID := getId("Provider_id", "Provider", "Provider_AS_Name", provider_name)[0]
         fmt.Println("Prov ID", prov_ID)
@@ -2028,7 +2043,7 @@ func main() {
             //var u_ids []int
             done := false
             if !done {
-                sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
+                sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "' and Test_ServerIP='" + serIp + "')"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -2055,7 +2070,7 @@ func main() {
                 done = true
             }
             if done {
-                sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "')"
+                sql_statement := "SELECT AVG(Avg" + param + "),AVG(Min" + param + "),AVG(Max" + param + "),AVG(Median" + param + ") from TCPInfo where TCPInfo_id in (SELECT Test_TCPInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(prov_ID) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + datelisteDeb[ind] + "' and '" + datelisteFin[ind] + "' and Test_ServerIP='" + serIp + "')"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -2099,9 +2114,10 @@ func main() {
         return
     })
 
-    router.HandleFunc("/providerSample/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/providerSample/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Provider samples")
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         category := vars["type"]
         category_Name := vars["type_id"]
         category_id := 0
@@ -2159,7 +2175,7 @@ func main() {
         if done {
             for _, provider := range prov {
                 ////fmt.Println("Provider select : ", provider.Id)
-                sql_statement := "SELECT count(*) from Tests where Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + st + "' and '" + en + "'"
+                sql_statement := "SELECT count(*) from Tests where Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -2187,7 +2203,7 @@ func main() {
         if !done {
             for _, provider := range prov {
                 ////fmt.Println("Provider select : ", provider.Id)
-                sql_statement := "SELECT count(*) from Tests where Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + st + "' and '" + en + "'"
+                sql_statement := "SELECT count(*) from Tests where Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_Type='Upload' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -2216,9 +2232,10 @@ func main() {
         return
     })
 
-    router.HandleFunc("/providerBW/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/providerBW/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Providers Average Bandwidth")
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         category := vars["type"]
         category_Name := vars["type_id"]
         category_id := 0
@@ -2275,7 +2292,7 @@ func main() {
         proBBR := make(map[string][]int)
         if done {
             for _, provider := range prov {
-                sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "'"
+                sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -2302,7 +2319,7 @@ func main() {
         //fmt.Println("ProBBR Down:", proBBR)
         if !done {
             for _, provider := range prov {
-                sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "'"
+                sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -2368,9 +2385,10 @@ func main() {
         return
     })
 
-    router.HandleFunc("/providersListe/{type}/{type_id}/{dayRange}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/providersListe/{type}/{type_id}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Provider list")
         var vars = mux.Vars(r)
+        serIp := vars["serIp"]
         category := vars["type"]
         category_Name := vars["type_id"]
         category_id := 0
@@ -2400,7 +2418,7 @@ func main() {
         var prov_liste []string
         done := false
         if !done {
-            sql_statement := "select Provider_AS_Name from Provider where Provider_id in (select Test_Provider_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Type='Download' and Test_Date between '" + st + "' and '" + en + "')"
+            sql_statement := "select Provider_AS_Name from Provider where Provider_id in (select Test_Provider_id from Tests where Test_" + category + "_id='" + strconv.Itoa(category_id) + "' and Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "')"
             fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -2417,6 +2435,48 @@ func main() {
                 ///fmt.Println(c)
                 prov_liste = append(prov_liste, s)
 
+            }
+            done = true
+        }
+        ////fmt.Println(count)
+        fmt.Println("Done")
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        json.NewEncoder(w).Encode(prov_liste)
+        return
+    })
+
+    router.HandleFunc("/providersListe/servers/", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Println("Servers lists")
+
+        db, err := sql.Open("mysql", dataCredential)
+        defer db.Close()
+
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        fmt.Println("Successful Connected")
+        var ser_liste [][]string
+        done := false
+        if !done {
+            sql_statement := "select * from Servers"
+            fmt.Println(sql_statement)
+            res, err := db.Query(sql_statement)
+            defer res.Close()
+
+            if err != nil {
+                log.Fatal(err)
+            }
+            fmt.Println("Request Successful Executed")
+            var s1 string
+            var s2 string
+            for res.Next() {
+                if err := res.Scan(&s1, &s2); err != nil {
+                    log.Fatal(err)
+                }
+                ///fmt.Println(c)
+                ser_liste[1] = append(ser_liste[1], s1)
+                ser_liste[2] = append(ser_liste[2], s2)
             }
             done = true
         }
