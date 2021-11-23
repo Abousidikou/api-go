@@ -795,6 +795,7 @@ func main() {
         typeOfParam := vars["typeofparam"]
         param := vars["param"]
         serIp := vars["serIp"]
+        fmt.Println(serIp)
         sql_statement := ""
         count := make(map[string]int)
         if typeOfParam == "country" {
