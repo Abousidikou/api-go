@@ -2446,7 +2446,7 @@ func main() {
         return
     })
 
-    router.HandleFunc("/providersListe/servers/", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/server_protocol", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Servers lists")
 
         db, err := sql.Open("mysql", dataCredential)
