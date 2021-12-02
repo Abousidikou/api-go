@@ -667,10 +667,18 @@ func main() {
     fn := logOutput()
     defer fn()
     router := mux.NewRouter()
-    router.HandleFunc("/country/{serIp}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/country/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Countries Retriving...")
         vars := mux.Vars(r)
         serIp := vars["serIp"]
+
+        startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
+        endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
+        fmt.Println(startDate, endDate)
+
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -679,7 +687,7 @@ func main() {
         }
         fmt.Println("Successful Connected")
         var countries []string
-        sql_statement := "select Country_name from Country where Country_id in (select Test_Country_id from Tests where Test_ServerIP='" + serIp + "')"
+        sql_statement := "select Country_name from Country where Country_id in (select Test_Country_id from Tests where Test_ServerIP='" + serIp + "' and Test_Date between '" + st + "' and '" + en + "')"
         fmt.Println(sql_statement)
         res, err := db.Query(sql_statement)
         defer res.Close()
@@ -703,7 +711,7 @@ func main() {
         return
     })
 
-    router.HandleFunc("/region/{country}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/region/{country}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Regions Retriving...")
         vars := mux.Vars(r)
         urlCountry := vars["country"]
@@ -711,6 +719,14 @@ func main() {
         fmt.Println("From Country: " + urlCountry)
         country_id := getId("Country_id", "Country", "Country_Name", urlCountry)[0]
         fmt.Println(" Country id: " + strconv.Itoa(country_id))
+
+        startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
+        endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
+        fmt.Println(startDate, endDate)
+
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
+
         db, err := sql.Open("mysql", credential)
         defer db.Close()
 
@@ -720,7 +736,7 @@ func main() {
 
         fmt.Println("Successful Connected")
         var regions []string
-        sql_statement := "SELECT Region_Name FROM Region where Region_id in (select Test_Region_id from Tests where Test_Country_id='" + strconv.Itoa(country_id) + "' and Test_ServerIP='" + serIp + "')"
+        sql_statement := "SELECT Region_Name FROM Region where Region_id in (select Test_Region_id from Tests where Test_Country_id='" + strconv.Itoa(country_id) + "' and Test_ServerIP='" + serIp + "' and Test_Date between '" + st + "' and '" + en + "')"
         fmt.Println(sql_statement)
         res, err := db.Query(sql_statement)
         defer res.Close()
@@ -743,7 +759,7 @@ func main() {
         json.NewEncoder(w).Encode(regions)
         return
     })
-    router.HandleFunc("/city/{region}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
+    router.HandleFunc("/city/{region}/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Cities Retriving...")
         vars := mux.Vars(r)
         urlregion := vars["region"]
@@ -753,6 +769,13 @@ func main() {
         //Get Region Id
         region_id := getId("Region_id", "Region", "Region_Name", urlregion)[0]
         fmt.Println("Region_id: " + strconv.Itoa(region_id))
+
+        startDate := strings.Split(strings.Split(vars["dayRange"], "-")[0], ",")
+        endDate := strings.Split(strings.Split(vars["dayRange"], "-")[1], ",")
+        fmt.Println(startDate, endDate)
+
+        st := startDate[2] + "-" + startDate[0] + "-" + startDate[1]
+        en := endDate[2] + "-" + endDate[0] + "-" + endDate[1]
 
         db, err := sql.Open("mysql", credential)
         defer db.Close()
@@ -764,7 +787,7 @@ func main() {
         fmt.Println("Successful Connected")
 
         var cities []string
-        sql_statement := "SELECT City_Name FROM City where City_id in (select Test_City_id from Tests where Test_Region_id='" + strconv.Itoa(region_id) + "' and Test_ServerIP='" + serIp + "')"
+        sql_statement := "SELECT City_Name FROM City where City_id in (select Test_City_id from Tests where Test_Region_id='" + strconv.Itoa(region_id) + "' and Test_ServerIP='" + serIp + "' and Test_Date between '" + st + "' and '" + en + "' )"
         fmt.Println(sql_statement)
         res, err := db.Query(sql_statement)
         defer res.Close()
@@ -1573,7 +1596,7 @@ func main() {
         to_send["Upload"] = up_to_send
 
         // According to month
-        if dayDiff > 30 {
+        if dayDiff > 35 {
             // faire la liste des date
             var datelisteDeb, datelisteFin []string
             if monthDiff <= 24 {
@@ -2189,7 +2212,7 @@ func main() {
                     if err := res.Scan(&d); err != nil {
                         log.Fatal(err)
                     }
-                    if d == 0 {
+                    if d == 0 || d == 1 {
                         continue
                     }
                     ////fmt.Println("Down Provider: ", d)
@@ -2216,6 +2239,9 @@ func main() {
                 for res.Next() {
                     if err := res.Scan(&u); err != nil {
                         log.Fatal(err)
+                    }
+                    if u == 0 || u == 1 {
+                        continue
                     }
                     //fmt.Println("Up Provider: ", u)
                 }
