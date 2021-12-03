@@ -2322,7 +2322,7 @@ func main() {
             fmt.Println(id)
             done = false
             if !done {
-                sql_statement := "select AVG(AvgBW) from BBRInfo where BBRInfo_id in (select Test_BBRinfo_id from Tests where Test_Provider_id='" + strconv.Itoa(id) + "' and Test_Type='Download' Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "')"
+                sql_statement := "SELECT AVG(AvgBW) from BBRInfo where BBRInfo_id in (select Test_BBRinfo_id from Tests where Test_Provider_id='" + strconv.Itoa(id) + "' and Test_Type='Download' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "')"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
