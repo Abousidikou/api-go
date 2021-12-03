@@ -2325,7 +2325,6 @@ func main() {
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
-                var ids []int
                 if err != nil {
                     log.Fatal(err)
                 }
@@ -2347,7 +2346,6 @@ func main() {
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
-                var ids []int
                 if err != nil {
                     log.Fatal(err)
                 }
