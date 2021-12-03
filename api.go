@@ -2290,10 +2290,14 @@ func main() {
 
         fmt.Println("Successful Connected")
 
-        prov := make(map[string]Provider)
+        prov := make(map[string]interface{})
+        catMap := make(map[int]string)
+        var cate []string
+        var avgBW_down []float64
+        var avgBW_up []float64
         done := false
         if !done {
-            sql_statement := "SELECT Provider_id,Provider_ISP,Provider_AS_Number,Provider_AS_Name from Provider"
+            sql_statement := "select Provider_id,Provider_AS_Name from Provider where Provider_id in (SELECT Test_Provider_id from Tests where  Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "')"
             fmt.Println(sql_statement)
             res, err := db.Query(sql_statement)
             defer res.Close()
@@ -2302,51 +2306,22 @@ func main() {
                 log.Fatal(err)
             }
             fmt.Println("Request Successful Executed")
-            var m Provider
-            i := 0
+            var id int
+            var s string
             for res.Next() {
-                if err := res.Scan(&m.Id, &m.ISP, &m.ASNumber, &m.ASName); err != nil {
+                if err := res.Scan(&id, &s); err != nil {
                     log.Fatal(err)
                 }
-                ////fmt.Println(m)
-                s := "Prov_" + strconv.Itoa(i)
-                prov[s] = m
-                i++
+                catMap[id] = s
             }
             done = true
         }
+        fmt.Println("CatMap:", catMap)
 
-        proBBR := make(map[string][]int)
-        if done {
-            for _, provider := range prov {
-                sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Download' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
-                fmt.Println(sql_statement)
-                res, err := db.Query(sql_statement)
-                defer res.Close()
-                var ids []int
-                if err != nil {
-                    log.Fatal(err)
-                }
-                fmt.Println("Request Successful Executed")
-                var c int
-                for res.Next() {
-                    if err := res.Scan(&c); err != nil {
-                        log.Fatal(err)
-                    }
-                    //fmt.Println("Down Provider: ", c)
-                    ids = append(ids, c)
-                }
-                if len(ids) != 0 {
-                    proBBR[provider.ASName+"_Down"] = ids
-                }
-            }
-
+        for id := range catMap {
             done = false
-        }
-        //fmt.Println("ProBBR Down:", proBBR)
-        if !done {
-            for _, provider := range prov {
-                sql_statement := "SELECT Test_BBRInfo_id from Tests where Test_Type='Upload' and Test_Provider_id='" + strconv.Itoa(provider.Id) + "' and Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "'"
+            if !done {
+                sql_statement := "select AVG(AvgBW) from BBRInfo where BBRInfo_id in (select Test_BBRinfo_id from Tests where Test_Provider_id=" + strconv.Itoa(id) + " and Test_Type='Download' Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "')"
                 fmt.Println(sql_statement)
                 res, err := db.Query(sql_statement)
                 defer res.Close()
@@ -2355,60 +2330,49 @@ func main() {
                     log.Fatal(err)
                 }
                 fmt.Println("Request Successful Executed")
-                var c int
+                var c []byte
                 for res.Next() {
                     if err := res.Scan(&c); err != nil {
                         log.Fatal(err)
                     }
-                    //fmt.Println("Up Provider: ", c)
-                    ids = append(ids, c)
+                    s, _ := strconv.ParseFloat(string(c), 10)
+                    avgBW_down = append(avgBW_down, s)
                 }
-                //fmt.Println(provider)
-                if len(ids) == 0 {
-                    proBBR[provider.ASName+"_Up"] = ids
-                }
+                done = true
 
             }
 
-            done = true
-        }
-
-        //fmt.Println("ProBBR All:", proBBR)
-        provBW := make(map[string]ProviderBW)
-        if done {
-            for pro, idl := range proBBR {
-                var bwl []BW
-                for _, id := range idl {
-                    sql_statement := "SELECT AvgBW,AvgMinRTT from BBRInfo where BBRInfo_id='" + strconv.Itoa(id) + "' "
-                    fmt.Println(sql_statement)
-                    res, err := db.Query(sql_statement)
-                    defer res.Close()
-                    if err != nil {
+            if done {
+                sql_statement := "select AVG(AvgBW) from BBRInfo where BBRInfo_id in (select Test_BBRinfo_id from Tests where Test_Provider_id=" + strconv.Itoa(id) + " and Test_Type='Upload' Test_" + category + "_id='" + strconv.Itoa(category_id) + "'  and  Test_Date between '" + st + "' and '" + en + "' and Test_ServerIP='" + serIp + "')"
+                fmt.Println(sql_statement)
+                res, err := db.Query(sql_statement)
+                defer res.Close()
+                var ids []int
+                if err != nil {
+                    log.Fatal(err)
+                }
+                fmt.Println("Request Successful Executed")
+                var c []byte
+                for res.Next() {
+                    if err := res.Scan(&c); err != nil {
                         log.Fatal(err)
                     }
-                    fmt.Println("Request Successful Executed")
-                    var bw BW
-                    for res.Next() {
-                        if err := res.Scan(&bw.BW, &bw.MinRTT); err != nil {
-                            //fmt.Println("Scanning Error")
-                            log.Fatal(err)
-                        }
-                        bwl = append(bwl, bw)
-                    }
+                    s, _ := strconv.ParseFloat(string(c), 10)
+                    avgBW_up = append(avgBW_up, s)
                 }
-                //fmt.Println("Pro: ", pro)
-                //fmt.Println("bwl: ", bwl)
-                getted := BWProcess(bwl)
-                //fmt.Println("Getted:", getted)
-                provBW[pro] = getted
-                //fmt.Println("ProvBW:", provBW)
+                done = true
             }
-
+            cate = append(cate, catMap[id])
         }
+        fmt.Println("avgDown:", avgBW_down)
+        fmt.Println("avgUp:", avgBW_up)
+        prov["category"] = cate
+        prov["avgBW_down"] = avgBW_down
+        prov["avgBW_up"] = avgBW_up
         fmt.Println("Done")
         w.Header().Set("Access-Control-Allow-Origin", "*")
         //json.NewEncoder(w).Encode(prov)
-        json.NewEncoder(w).Encode(provBW)
+        json.NewEncoder(w).Encode(prov)
         return
     })
 
