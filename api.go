@@ -667,6 +667,18 @@ func main() {
     fn := logOutput()
     defer fn()
     router := mux.NewRouter()
+    
+    router.HandleFunc("/",func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        w.Write([]byte("Welcome to our API"))
+        return
+    })
+    router.HandleFunc("/json",func(w http.ResponseWriter, r *http.Request) {
+        js := "{Nom:Sidik, Prenom:ODJO}"
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        json.NewEncoder(w).Encode(js)
+        return
+    })
     router.HandleFunc("/country/{dayRange}/{serIp}", func(w http.ResponseWriter, r *http.Request) {
         fmt.Println("Countries Retriving...")
         vars := mux.Vars(r)
