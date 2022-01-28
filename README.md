@@ -8,7 +8,7 @@
   
   ## Clone repository
   ```bash
-  https://github.com/Abousidikou/api-go.git && cd api-go
+  git clone https://github.com/Abousidikou/api-go.git && cd api-go
   ```
   
   ## Initialize go module
