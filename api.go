@@ -364,7 +364,7 @@ func daySliceToMonth(dateDeb, dateFin string, down, up map[string][]thirdDaySlic
         for date, slice := range down {
             if is_a_After_bDate(date, dateDeb) && is_a_After_bDate(dateFin, date) {
                 for _, val := range slice {
-                    if val.DaySlice == 1 {
+                    if val.DaySlice == i {
                         avgDown = append(avgDown, val.Bw)
                     }
                 }
@@ -378,7 +378,7 @@ func daySliceToMonth(dateDeb, dateFin string, down, up map[string][]thirdDaySlic
         for date, slice := range up {
             if is_a_After_bDate(date, dateDeb) && is_a_After_bDate(dateFin, date) {
                 for _, val := range slice {
-                    if val.DaySlice == 1 {
+                    if val.DaySlice == i {
                         avgUp = append(avgUp, val.Bw)
                     }
                 }
@@ -667,14 +667,14 @@ func main() {
     fn := logOutput()
     defer fn()
     router := mux.NewRouter()
-    
-    router.HandleFunc("/",func(w http.ResponseWriter, r *http.Request) {
+
+    router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         w.Header().Set("Access-Control-Allow-Origin", "*")
         w.Write([]byte("Welcome to our API"))
         return
     })
-    router.HandleFunc("/json",func(w http.ResponseWriter, r *http.Request) {
-        js := "{Nom:Sidik, Prenom:ODJO}"
+    router.HandleFunc("/json", func(w http.ResponseWriter, r *http.Request) {
+        js := "{Nom:EMES, Prenom:EMES}"
         w.Header().Set("Access-Control-Allow-Origin", "*")
         json.NewEncoder(w).Encode(js)
         return
@@ -1528,7 +1528,7 @@ func main() {
         //fmt.Println("upDay3", up)
         var days []string
         if !done {
-            for i, y := range down {
+            for i, y := range down { // "date"=[[],[]]
                 days = append(days, i)
                 var bw []int
                 for _, id := range y[1] {
