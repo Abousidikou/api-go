@@ -18,8 +18,10 @@ import (
 
 const monthInYear = 12
 const dayInMonth = 31
-const credential = "root:Emes@@2021@tcp(127.0.0.1:3306)/monitorDB"
-const dataCredential = "root:Emes@@2021@tcp(127.0.0.1:3306)/monitorData"
+const credential = "emes:Emes@Mysql2022@tcp(127.0.0.1:3306)/monitorDB"
+const dataCredential = "emes:Emes@Mysql2022@tcp(127.0.0.1:3306)/monitorData"
+const cert = "/etc/letsencrypt/live/emes.bj/fullchain.pem"
+const key = "/etc/letsencrypt/live/emes.bj/privkey.pem"
 
 type Location struct {
     Id   int
@@ -2498,9 +2500,6 @@ func main() {
         Handler: router, // use `http.DefaultServeMux`
     }
 
-    cert := "fullchain.pem"
-    key := "privkey.pem"
-    // run server on port "9000"
     log.Fatal(s.ListenAndServeTLS(cert, key))
 }
 
